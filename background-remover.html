@@ -345,7 +345,7 @@ Hub.mount('Background Remover');
 const $ = id => document.getElementById(id);
 let items = [], bg = '', lib = null, queue = Promise.resolve();
 async function getLib() {
-  if (!lib) lib = import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
+  if (!lib) lib = import('https://esm.sh/@imgly/background-removal@1.4.5').catch(e => { lib = null; throw e; });
   return lib;
 }
 Hub.dropzone($('drop'), { accept: 'image/png,image/jpeg,image/webp', multiple: true, onFiles: fs => {
