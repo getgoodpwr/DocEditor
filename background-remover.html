@@ -348,7 +348,7 @@ async function getLib() {
   if (!lib) lib = import('https://esm.sh/@imgly/background-removal@1.4.5').catch(e => { lib = null; throw e; });
   return lib;
 }
-Hub.dropzone($('drop'), { accept: 'image/png,image/jpeg,image/webp', multiple: true, onFiles: fs => {
+Hub.dropzone($('drop'), { accept: 'image/*,.heic,.heif', multiple: true, onFiles: fs => {
   if (!items.length) $('results').innerHTML = '';
   fs.forEach(f => { const it = { file: f, name: f.name, cut: null, out: null }; items.push(it); addCard(it); queue = queue.then(() => process(it)); });
 } });
@@ -363,15 +363,34 @@ async function process(it) {
   const st = it.el.querySelector('.status');
   try {
     st.textContent = 'Loading AI model…';
+    if (/hei[cf]/i.test(it.file.type) || /\.hei[cf]$/i.test(it.name)) throw new Error('iPhone HEIC photos can\'t be opened in the browser. Export it as JPG first (on iPhone: Settings › Camera › Formats › Most Compatible).');
+    st.textContent = 'Preparing photo…';
+    const src = await prepare(it.file);
+    st.textContent = 'Loading AI model…';
     const { removeBackground } = await getLib();
-    const blob = await removeBackground(it.file, {
+    const blob = await removeBackground(src, {
       model: $('quality').value === 'isnet_quint8' ? 'small' : 'medium',
       progress: (k, cur, tot) => { if (/fetch/.test(k) && tot) st.textContent = `Downloading model ${Math.round(cur / tot * 100)}%`; else st.textContent = 'Removing background…'; },
       output: { format: 'image/png' }
     });
     it.cut = await Hub.loadImage(URL.createObjectURL(blob));
     await compose(it); st.textContent = 'Done'; it.el.querySelector('button').disabled = false; $('all').disabled = false;
-  } catch (e) { console.error(e); st.textContent = 'Could not process this photo.'; $('log').textContent = 'If this keeps happening, check your internet connection (the model has to download once) or try Fast quality.'; }
+  } catch (e) {
+    console.error(e); const msg = String((e && e.message) || e || '');
+    st.textContent = 'Could not process this photo.';
+    $('log').textContent = /HEIC/.test(msg) ? msg : /decode|load image|image/i.test(msg) ? 'This photo format could not be opened. Save it as JPG or PNG and try again.'
+      : /fetch|network|Failed to load/i.test(msg) ? 'The AI model could not download. Check your internet connection and try again.'
+      : /memory|allocation|Aborted/i.test(msg) ? 'The browser ran out of memory. Close other tabs or choose Fast quality, then try again.'
+      : 'Details: ' + msg.slice(0, 160) + ' Try Fast quality, or press Ctrl+F5 to reload the page.';
+  }
+}
+/** Decode any photo the browser can open and scale it to at most 2000 px, so big phone photos don't run out of memory. */
+async function prepare(file) {
+  const img = await Hub.loadImage(await Hub.dataURL(file)).catch(() => { throw new Error('decode: could not load image'); });
+  const sc = Math.min(1, 2000 / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * sc); c.height = Math.round(img.naturalHeight * sc);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return await new Promise(r => c.toBlob(r, 'image/png'));
 }
 function alphaBox(img) {
   const c = document.createElement('canvas'), s = Math.min(1, 400 / Math.max(img.width, img.height)); c.width = img.width * s; c.height = img.height * s;
