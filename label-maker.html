@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>QR &amp; Barcode Labels · GoodPWR HR Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&family=Jost:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* GoodPWR HR Hub — shared styles. Change the brand color in one place: --accent. */
+:root{
+  --bg:#F3F3F1; --panel:#FFFFFF; --line:#DEDDD8; --ink:#1F2124; --muted:#6A6C70; --soft:#ECECE8;
+  --accent:#2E7D4F; --accent-ink:#FFFFFF; --accent-soft:#E3F0E8; --danger:#B3261E; --warn:#9A6400;
+  --f-display:"Bodoni Moda", "Didot", Georgia, serif;
+  --f-body:"Jost", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:8px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+[hidden]{display:none!important}
+img{max-width:100%}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* top bar */
+.hub-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--line);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hub-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.hub-brand img{height:30px;width:auto}
+.hub-brand b{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.01em}
+.hub-brand span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.hub-crumb{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px}
+.hub-crumb strong{color:var(--ink);font-weight:600}
+.hub-top .grow{flex:1}
+.hub-private{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.hub-private::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+
+/* layout */
+.wrap{max-width:1180px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 20px;margin-bottom:18px}
+.page-head h1{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,4vw,34px);line-height:1.1;margin:0;text-wrap:balance}
+.page-head p{margin:0;color:var(--muted);max-width:62ch}
+.replaces{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:2px 10px;background:var(--panel)}
+.cols{display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start}
+.cols.wide-left{grid-template-columns:400px minmax(0,1fr)}
+@media (max-width:860px){.cols,.cols.wide-left{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.panel h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 12px}
+.panel + .panel{margin-top:16px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.between{justify-content:space-between}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:480px){.grid2,.grid3{grid-template-columns:1fr}}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.mono{font-family:var(--f-mono);font-size:13px}
+hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+
+/* form controls */
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>label,.lbl{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.field input[type=text],.field input[type=number],.field input[type=email],.field input[type=url],.field input[type=tel],.field input[type=date],.field input[type=time],
+.field select,.field textarea,.input{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
+.field textarea{min-height:90px;resize:vertical}
+.field input[type=color]{width:100%;height:38px;border:1px solid var(--line);border-radius:6px;padding:2px;background:var(--panel)}
+.check{display:flex;align-items:center;gap:8px;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:8px 14px;line-height:1.2;white-space:nowrap;text-decoration:none;color:var(--ink)}
+.btn:hover:not(:disabled){background:var(--soft)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08);background:var(--accent)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.danger{color:var(--danger)}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;border-right:1px solid var(--line);background:transparent;padding:7px 12px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent);font-weight:600}
+
+/* drop zone */
+.drop{border:2px dashed var(--line);border-radius:var(--r);background:var(--panel);padding:28px 18px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{display:block;font-size:16px;margin-bottom:2px}
+.drop .muted{font-size:13px}
+
+/* file list */
+.files{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.files li{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:var(--panel);min-width:0}
+.files li .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.files li .meta{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+
+/* stage for page previews */
+.stage{background:#E4E4E0;border-radius:var(--r);padding:20px;overflow:auto;min-height:360px;display:flex;flex-direction:column;align-items:center;gap:20px}
+.sheet{position:relative;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.16),0 8px 24px rgba(0,0,0,.10);flex:none}
+.sheet canvas{display:block}
+.empty-note{color:var(--muted);text-align:center;margin:auto;max-width:40ch}
+
+.progress{height:6px;background:var(--soft);border-radius:4px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 6px 6px 0;font-size:13.5px}
+.note.warn{border-color:var(--warn);background:#FBF1DE}
+table.data{border-collapse:collapse;width:100%;font-size:13.5px}
+table.data th,table.data td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;white-space:nowrap}
+table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.scroll-x{overflow-x:auto}
+
+.hub-toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;max-width:calc(100% - 32px);opacity:0;pointer-events:none;transition:opacity .2s;z-index:100}
+.hub-toast.show{opacity:1}
+
+</style>
+<style>#pv canvas{max-width:100%;height:auto!important}</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="page-head"><h1>QR &amp; Barcode Labels</h1><span class="replaces">Instead of Avery Design Pro or label software</span>
+    <p>Asset tags, equipment labels and badge stickers with QR codes or barcodes, laid out to print exactly on standard Avery sheets.</p></div>
+  <div class="cols wide-left">
+    <aside>
+      <div class="panel stack">
+        <h2>1 · Label sheet</h2>
+        <div class="field"><label for="sheet">Avery template</label>
+          <select id="sheet">
+            <option value="5160">5160 / 8160 · Address, 1" × 2⅝" (30 per sheet)</option>
+            <option value="5163">5163 / 8163 · Shipping, 2" × 4" (10 per sheet)</option>
+            <option value="5167">5167 / 8167 · Return address, ½" × 1¾" (80 per sheet)</option>
+            <option value="5195">5195 · Return address, ⅔" × 1¾" (60 per sheet)</option>
+            <option value="22806" selected>22806 · Square, 2" × 2" (12 per sheet)</option>
+          </select></div>
+        <div class="grid2">
+          <div class="field"><label for="skip">Start at label #</label><input type="number" id="skip" value="1" min="1"></div>
+          <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="outline"> Print outlines</label></div>
+        </div>
+      </div>
+      <div class="panel stack">
+        <h2>2 · Codes</h2>
+        <div class="seg" id="src"><button data-s="seq" aria-pressed="true">Number sequence</button><button data-s="list" aria-pressed="false">My own list</button></div>
+        <div id="seqOpts" class="grid2">
+          <div class="field"><label for="prefix">Prefix</label><input type="text" id="prefix" value="GPWR-EQ-"></div>
+          <div class="field"><label for="start">First number</label><input type="number" id="start" value="1" min="0"></div>
+          <div class="field"><label for="count">How many</label><input type="number" id="count" value="12" min="1" max="2000"></div>
+          <div class="field"><label for="digits">Digits</label><input type="number" id="digits" value="4" min="1" max="10"></div>
+        </div>
+        <div id="listOpts" class="stack" hidden>
+          <div class="field"><label for="list">One per line: code, optional line 2</label><textarea id="list" placeholder="LAPTOP-0012, Dell Latitude 5440&#10;TRUCK-07, Ford F-150&#10;DRILL-031, Milwaukee M18"></textarea></div>
+          <div class="drop" id="dropCsv" style="padding:12px"><strong style="font-size:14px">…or load a CSV / Excel</strong><span class="muted">First column = code, second = line 2</span></div>
+        </div>
+        <div class="field"><label for="type">Code type</label><select id="type"><option value="qr">QR code</option><option value="CODE128">Barcode (Code 128)</option><option value="CODE39">Barcode (Code 39)</option><option value="none">Text only</option></select></div>
+        <div class="field"><label for="qrUrl">QR links to (optional)</label><input type="text" id="qrUrl" placeholder="https://… use {code} for the label's code"></div>
+      </div>
+      <div class="panel stack">
+        <h2>3 · Text on the label</h2>
+        <div class="field"><label for="line1">Top line</label><input type="text" id="line1" value="Property of GoodPWR"></div>
+        <label class="check"><input type="checkbox" id="showCode" checked> Print the code under the QR / barcode</label>
+        <div class="field"><label for="line3">Bottom line (same on every label)</label><input type="text" id="line3" value="If found, call (555) 010-2030"></div>
+      </div>
+    </aside>
+    <section class="stack">
+      <div class="row between"><span class="small muted" id="info"></span><button class="btn primary" id="dl">Download PDF to print</button></div>
+      <div class="stage" id="pv"><p class="empty-note">Building preview…</p></div>
+      <div class="note">Print at <b>100% / Actual size</b> (not "Fit to page"). Test on plain paper first and hold it behind a label sheet to check alignment.</div>
+    </section>
+  </div>
+</main>
+<script>
+/* GoodPWR HR Hub — shared helpers used by every tool. Nothing here stores or sends data anywhere. */
+(function () {
+  const LIBS = {
+    pdfjs: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+    pdflib: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',
+    fontkit: 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
+    jszip: 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    papa: 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
+    xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    diff: 'https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js',
+    tesseract: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js',
+    qrcode: 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
+    jsbarcode: 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js'
+  };
+  const PDF_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const loaded = {};
+
+  const Hub = {
+    company: { name: 'GoodPWR', site: 'getgoodpwr.com' },
+
+    /** Load one or more libraries by key (see LIBS) or URL. Each loads once. */
+    load(...keys) {
+      return Promise.all(keys.map(k => {
+        const url = LIBS[k] || k;
+        if (!loaded[url]) loaded[url] = new Promise((res, rej) => {
+          const s = document.createElement('script'); s.src = url; s.onload = res;
+          s.onerror = () => rej(new Error('Could not load a required library. Check your internet connection and reload.'));
+          document.head.appendChild(s);
+        });
+        return loaded[url];
+      })).then(() => { if (window.pdfjsLib && !pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER; });
+    },
+
+    /** Tab icon: a dark rounded square with a green bar and a short code, so HR Hub tabs never look like the GoodPWR logo. */
+    favicon(code) {
+      const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+      x.fillStyle = '#1F2124'; x.beginPath(); x.roundRect ? x.roundRect(0, 0, 64, 64, 14) : x.rect(0, 0, 64, 64); x.fill();
+      x.fillStyle = '#5FBF84'; x.fillRect(12, 50, 40, 5);
+      x.fillStyle = '#FFFFFF'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = `700 ${code.length > 2 ? 21 : 28}px Arial, Helvetica, sans-serif`; x.fillText(code, 32, 29);
+      document.querySelectorAll('link[rel~="icon"]').forEach(l => l.remove());
+      const l = document.createElement('link'); l.rel = 'icon'; l.type = 'image/png'; l.href = c.toDataURL('image/png'); document.head.appendChild(l);
+    },
+    ICONS: { 'pdf-editor': 'PE', 'form-builder': 'FF', 'sign-pdf': 'SI', 'pdf-compare': 'CP', 'ocr': 'OCR', 'bates-numbering': 'BN', 'mail-merge': 'MM',
+      'certificate-designer': 'CD', 'social-graphics': 'AG', 'background-remover': 'BG', 'email-signature': 'ES', 'time-zones': 'TZ', 'label-maker': 'QR' },
+
+    /** Insert the shared top bar. */
+    mount(title) {
+      const file = (location.pathname.split('/').pop() || '').replace(/\.html$/, '');
+      Hub.favicon(Hub.ICONS[file] || 'HR');
+      const home = './';
+      const h = document.createElement('header'); h.className = 'hub-top';
+      h.innerHTML = `<a class="hub-brand" href="${home}index.html"><img src="${home}logo.png" alt="" onerror="this.remove()"><b>GoodPWR</b><span>HR Hub</span></a>
+        ${title ? `<span class="hub-crumb">/ <strong></strong></span>` : ''}<span class="grow"></span>
+        <span class="hub-private" title="Files are processed in your browser and never uploaded">Files stay on your computer</span>`;
+      if (title) h.querySelector('strong').textContent = title;
+      document.body.prepend(h);
+      if (title) document.title = title + ' · GoodPWR HR Hub';
+    },
+
+    toast(msg, ms = 2800) {
+      let t = document.querySelector('.hub-toast');
+      if (!t) { t = document.createElement('div'); t.className = 'hub-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(Hub._tt); Hub._tt = setTimeout(() => t.classList.remove('show'), ms);
+    },
+
+    /** Save a Blob/bytes/string as a file. */
+    download(data, filename, type) {
+      const blob = data instanceof Blob ? data : new Blob([data], { type: type || 'application/octet-stream' });
+      const u = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = u; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 5000);
+    },
+
+    async zip(files, zipName) {
+      await Hub.load('jszip');
+      const z = new JSZip(); files.forEach(f => z.file(f.name, f.data));
+      Hub.download(await z.generateAsync({ type: 'blob' }), zipName);
+    },
+
+    bytes: async f => new Uint8Array(await f.arrayBuffer()),
+    dataURL: f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }),
+    loadImage: src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }),
+    baseName: n => (n || 'file').replace(/\.[^.]+$/, ''),
+    size: b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(0) + ' KB' : (b / 1048576).toFixed(1) + ' MB',
+    esc: s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
+
+    /** Make an element a click-or-drop file picker. */
+    dropzone(el, { accept = '', multiple = false, onFiles }) {
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = accept; inp.multiple = multiple; inp.hidden = true;
+      el.after(inp); el.tabIndex = 0; el.setAttribute('role', 'button');
+      const take = list => { const fs = [...list]; if (fs.length) onFiles(multiple ? fs : [fs[0]]); };
+      el.addEventListener('click', () => inp.click());
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inp.click(); } });
+      inp.addEventListener('change', () => { take(inp.files); inp.value = ''; });
+      el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
+      el.addEventListener('dragleave', () => el.classList.remove('over'));
+      el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); take(e.dataTransfer.files); });
+      return inp;
+    },
+
+    /** Open a PDF with pdf.js (keeps the original bytes intact). */
+    async openPdf(bytes) {
+      await Hub.load('pdfjs');
+      try { return await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise; }
+      catch (e) { throw new Error(e && e.name === 'PasswordException' ? 'This PDF is password-protected. Remove the password first.' : 'That file could not be read as a PDF.'); }
+    },
+
+    /** Render a pdf.js page to a canvas at a given scale. */
+    async renderPage(page, scale, canvas, rotation) {
+      const vp = page.getViewport({ scale, rotation: rotation ?? page.rotate });
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas = canvas || document.createElement('canvas');
+      canvas.width = Math.floor(vp.width * dpr); canvas.height = Math.floor(vp.height * dpr);
+      canvas.style.width = vp.width + 'px'; canvas.style.height = vp.height + 'px';
+      const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      return { canvas, viewport: vp };
+    },
+
+    hexRgb(h) { const n = parseInt((h || '#000000').slice(1), 16); return PDFLib.rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); },
+
+    /** Make text safe for standard PDF fonts. */
+    winAnsi: s => String(s || '').normalize('NFKC').replace(/₱/g, 'PHP ')
+      .replace(/[^\n\x20-\x7E\xA0-\xFF‘’“”–—•€…]/g, '?'),
+
+    /** Read a CSV or Excel file (or pasted CSV text) into { headers, rows:[{col:value}] }. */
+    async readTable(fileOrText) {
+      let rows;
+      if (typeof fileOrText === 'string' || /\.(csv|txt|tsv)$/i.test(fileOrText.name)) {
+        await Hub.load('papa');
+        const text = typeof fileOrText === 'string' ? fileOrText : await fileOrText.text();
+        rows = Papa.parse(text.trim(), { header: true, skipEmptyLines: true, transformHeader: h => h.trim() }).data;
+      } else {
+        await Hub.load('xlsx');
+        const wb = XLSX.read(await fileOrText.arrayBuffer(), { type: 'array', cellDates: true });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', raw: false });
+      }
+      rows = rows.filter(r => Object.values(r).some(v => String(v).trim()));
+      const headers = rows.length ? Object.keys(rows[0]).filter(h => h && !/^__EMPTY/.test(h)) : [];
+      return { headers, rows };
+    },
+
+    /** Wrap text into lines that fit a width with a pdf-lib font. */
+    wrap(text, font, size, maxW) {
+      const out = [];
+      String(text).split('\n').forEach(par => {
+        if (!par.trim()) { out.push(''); return; }
+        let line = '';
+        par.split(/(\s+)/).forEach(tok => {
+          const test = line + tok;
+          if (font.widthOfTextAtSize(test.trimEnd(), size) <= maxW || !line.trim()) line = test;
+          else { out.push(line.trimEnd()); line = tok.trimStart(); }
+        });
+        out.push(line.trimEnd());
+      });
+      return out;
+    },
+
+    /** Make a small working state for a tool when there is nothing loaded yet. */
+    async samplePdf(lines, title) {
+      await Hub.load('pdflib');
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const d = await PDFDocument.create(), f = await d.embedFont(StandardFonts.Helvetica), fb = await d.embedFont(StandardFonts.HelveticaBold);
+      const p = d.addPage([612, 792]);
+      p.drawText(title, { x: 72, y: 700, size: 20, font: fb, color: rgb(.12, .13, .15) });
+      lines.forEach((l, i) => p.drawText(l, { x: 72, y: 660 - i * 22, size: 11, font: f, color: rgb(.12, .13, .15) }));
+      return await d.save();
+    }
+  };
+  window.Hub = Hub;
+})();
+
+</script>
+<script>
+Hub.mount('QR & Barcode Labels');
+const $ = id => document.getElementById(id);
+// inches: label w, h, cols, rows, top, left, horizontal pitch, vertical pitch
+const SHEETS = {
+  5160: [2.625, 1, 3, 10, .5, .1875, 2.75, 1],
+  5163: [4, 2, 2, 5, .5, .15625, 4.1875, 2],
+  5167: [1.75, .5, 4, 20, .5, .28125, 2.0625, .5],
+  5195: [1.75, .6667, 4, 15, .5, .28125, 2.0625, .6667],
+  22806: [2, 2, 3, 4, .625, .625, 2.625, 2.5]
+};
+let src = 'seq', last = null, timer;
+$('src').onclick = e => { const b = e.target.closest('button'); if (!b) return; src = b.dataset.s; $('src').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); $('seqOpts').hidden = src !== 'seq'; $('listOpts').hidden = src !== 'list'; schedule(); };
+Hub.dropzone($('dropCsv'), { accept: '.csv,.txt,.xlsx,.xls', onFiles: async ([f]) => {
+  try { const t = await Hub.readTable(f); $('list').value = t.rows.map(r => [r[t.headers[0]], t.headers[1] ? r[t.headers[1]] : ''].filter(Boolean).join(', ')).join('\n'); schedule(); }
+  catch (e) { Hub.toast('That file could not be read.'); }
+} });
+function records() {
+  if (src === 'seq') { const n = Math.min(2000, +$('count').value || 0), s = +$('start').value || 0, dg = +$('digits').value || 1; return [...Array(n)].map((_, i) => ({ code: $('prefix').value + String(s + i).padStart(dg, '0'), sub: '' })); }
+  return $('list').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const i = l.indexOf(','); return i < 0 ? { code: l, sub: '' } : { code: l.slice(0, i).trim(), sub: l.slice(i + 1).trim() }; });
+}
+function barcodePng(code, fmt) {
+  const c = document.createElement('canvas');
+  try { JsBarcode(c, code, { format: fmt, displayValue: false, margin: 0, height: 120, width: 4 }); return c.toDataURL('image/png'); } catch (e) { return null; }
+}
+async function build() {
+  await Hub.load('pdflib', 'qrcode', 'jsbarcode');
+  const { PDFDocument, StandardFonts, rgb } = PDFLib, [lw, lh, cols, rows, top, left, hp, vp] = SHEETS[$('sheet').value].map(n => n * 72);
+  const doc = await PDFDocument.create(), font = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold), mono = await doc.embedFont(StandardFonts.Courier);
+  const recs = records(), per = cols * rows, skip = Math.max(0, Math.min(per - 1, (+$('skip').value || 1) - 1)), type = $('type').value, ink = rgb(0, 0, 0);
+  let page, bad = 0;
+  const fitText = (t, f, max, w) => { let s = max; while (s > 4 && f.widthOfTextAtSize(t, s) > w) s -= .5; return s; };
+  for (let i = 0; i < recs.length; i++) {
+    const slot = i + skip, pi = Math.floor(slot / per), k = slot % per;
+    if (k === 0 || !page) page = doc.addPage([612, 792]);
+    const c = k % cols, r = Math.floor(k / cols), x = left + c * hp, y = 792 - top - r * vp - lh;
+    if ($('outline').checked) page.drawRectangle({ x, y, width: lw, height: lh, borderColor: rgb(.75, .75, .75), borderWidth: .5 });
+    const { code, sub } = recs[i], pad = Math.min(6, lh * .08), wide = lw / lh > 1.6;
+    const l1 = Hub.winAnsi($('line1').value), l3 = Hub.winAnsi($('line3').value), codeTxt = Hub.winAnsi(code), subTxt = Hub.winAnsi(sub);
+    let tx = x + pad, tw = lw - pad * 2;
+    // code graphic
+    if (type !== 'none') {
+      if (type === 'qr') {
+        const q = qrcode(0, 'M'); q.addData(($('qrUrl').value || '{code}').replace(/\{code\}/g, code)); q.make();
+        const n = q.getModuleCount(), size = wide ? lh - pad * 2 : Math.min(lw, lh) * .58, m = size / n;
+        const qx = wide ? x + pad : x + (lw - size) / 2, qy = wide ? y + pad : y + lh - pad - size - (l1 ? lh * .1 : 0);
+        for (let rr = 0; rr < n; rr++) for (let cc = 0; cc < n; cc++) if (q.isDark(rr, cc)) page.drawRectangle({ x: qx + cc * m, y: qy + (n - 1 - rr) * m, width: m + .05, height: m + .05, color: ink });
+        if (wide) { tx = qx + size + pad; tw = x + lw - pad - tx; }
+      } else {
+        const png = barcodePng(code, type);
+        if (!png) bad++;
+        else {
+          const img = await doc.embedPng(png), bw = wide ? lw * .55 : lw - pad * 2, bh = wide ? lh - pad * 2 - (($('showCode').checked) ? 9 : 0) : lh * .4;
+          const bx = x + pad, by = wide ? y + lh - pad - bh : y + lh * .3;
+          page.drawImage(img, { x: bx, y: by, width: bw, height: bh });
+          if ($('showCode').checked) { const s = fitText(codeTxt, mono, 8, bw); page.drawText(codeTxt, { x: bx + (bw - mono.widthOfTextAtSize(codeTxt, s)) / 2, y: by - s - 1, size: s, font: mono, color: ink }); }
+          if (wide) { tx = bx + bw + pad; tw = x + lw - pad - tx; }
+        }
+      }
+    }
+    // text block
+    const lines = [];
+    if (l1) lines.push([l1, bold, 9]);
+    if ((type === 'none' || type === 'qr') && $('showCode').checked || type === 'none') lines.push([codeTxt, mono, type === 'none' ? 12 : 9]);
+    if (subTxt) lines.push([subTxt, font, 8]);
+    if (l3) lines.push([l3, font, 6.5]);
+    const centered = !wide;
+    if (wide || type === 'none') {
+      const sizes = lines.map(([t, f, s]) => fitText(t, f, Math.min(s, lh / (lines.length + 1)), tw)), total = sizes.reduce((a, s) => a + s * 1.25, 0);
+      let cy = y + lh / 2 + total / 2;
+      lines.forEach(([t, f], j) => { cy -= sizes[j] * 1.25; const w = f.widthOfTextAtSize(t, sizes[j]); page.drawText(t, { x: centered ? x + (lw - w) / 2 : tx, y: cy + sizes[j] * .2, size: sizes[j], font: f, color: ink }); });
+    } else {
+      // square / tall: top line above the code, the rest below it
+      const below = lines.filter(l => l[0] !== l1);
+      if (l1) { const s = fitText(l1, bold, 9, tw); page.drawText(l1, { x: x + (lw - bold.widthOfTextAtSize(l1, s)) / 2, y: y + lh - pad - s, size: s, font: bold, color: ink }); }
+      let cy = type === 'qr' ? y + lh - pad - Math.min(lw, lh) * .58 - (l1 ? lh * .1 : 0) - 2 : y + lh * .3 - 12;
+      below.forEach(([t, f, s0]) => { const s = fitText(t, f, s0, tw); cy -= s * 1.2; page.drawText(t, { x: x + (lw - f.widthOfTextAtSize(t, s)) / 2, y: cy, size: s, font: f, color: ink }); });
+    }
+  }
+  if (bad) Hub.toast(`${bad} code${bad > 1 ? 's' : ''} can't be made into this barcode type. Code 39 allows only A–Z, 0–9 and - . $ / + % space.`, 6000);
+  $('info').textContent = `${recs.length} label${recs.length === 1 ? '' : 's'} · ${doc.getPageCount()} sheet${doc.getPageCount() === 1 ? '' : 's'}`;
+  return recs.length ? doc.save() : null;
+}
+async function preview() {
+  try {
+    last = await build(); const pv = $('pv');
+    if (!last) { pv.innerHTML = '<p class="empty-note">Add at least one code.</p>'; return; }
+    const pdf = await Hub.openPdf(last), pg = await pdf.getPage(1), scale = Math.min((pv.clientWidth - 40) / 612, 1.3);
+    const sh = document.createElement('div'); sh.className = 'sheet'; const { canvas } = await Hub.renderPage(pg, scale); sh.appendChild(canvas);
+    pv.innerHTML = ''; pv.appendChild(sh);
+  } catch (e) { console.error(e); $('pv').innerHTML = `<p class="empty-note">Could not build the labels: ${Hub.esc(e.message)}</p>`; }
+}
+function schedule() { clearTimeout(timer); timer = setTimeout(preview, 350); }
+document.querySelectorAll('aside input, aside select, aside textarea').forEach(el => el.addEventListener('input', schedule));
+$('dl').onclick = async () => { const b = await build(); if (b) Hub.download(b, `labels-avery-${$('sheet').value}.pdf`, 'application/pdf'); };
+preview();
+</script>
+</body>
+</html>

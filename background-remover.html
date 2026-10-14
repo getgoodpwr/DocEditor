@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Background Remover · GoodPWR HR Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&family=Jost:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* GoodPWR HR Hub — shared styles. Change the brand color in one place: --accent. */
+:root{
+  --bg:#F3F3F1; --panel:#FFFFFF; --line:#DEDDD8; --ink:#1F2124; --muted:#6A6C70; --soft:#ECECE8;
+  --accent:#2E7D4F; --accent-ink:#FFFFFF; --accent-soft:#E3F0E8; --danger:#B3261E; --warn:#9A6400;
+  --f-display:"Bodoni Moda", "Didot", Georgia, serif;
+  --f-body:"Jost", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:8px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+[hidden]{display:none!important}
+img{max-width:100%}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* top bar */
+.hub-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--line);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hub-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.hub-brand img{height:30px;width:auto}
+.hub-brand b{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.01em}
+.hub-brand span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.hub-crumb{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px}
+.hub-crumb strong{color:var(--ink);font-weight:600}
+.hub-top .grow{flex:1}
+.hub-private{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.hub-private::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+
+/* layout */
+.wrap{max-width:1180px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 20px;margin-bottom:18px}
+.page-head h1{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,4vw,34px);line-height:1.1;margin:0;text-wrap:balance}
+.page-head p{margin:0;color:var(--muted);max-width:62ch}
+.replaces{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:2px 10px;background:var(--panel)}
+.cols{display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start}
+.cols.wide-left{grid-template-columns:400px minmax(0,1fr)}
+@media (max-width:860px){.cols,.cols.wide-left{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.panel h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 12px}
+.panel + .panel{margin-top:16px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.between{justify-content:space-between}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:480px){.grid2,.grid3{grid-template-columns:1fr}}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.mono{font-family:var(--f-mono);font-size:13px}
+hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+
+/* form controls */
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>label,.lbl{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.field input[type=text],.field input[type=number],.field input[type=email],.field input[type=url],.field input[type=tel],.field input[type=date],.field input[type=time],
+.field select,.field textarea,.input{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
+.field textarea{min-height:90px;resize:vertical}
+.field input[type=color]{width:100%;height:38px;border:1px solid var(--line);border-radius:6px;padding:2px;background:var(--panel)}
+.check{display:flex;align-items:center;gap:8px;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:8px 14px;line-height:1.2;white-space:nowrap;text-decoration:none;color:var(--ink)}
+.btn:hover:not(:disabled){background:var(--soft)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08);background:var(--accent)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.danger{color:var(--danger)}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;border-right:1px solid var(--line);background:transparent;padding:7px 12px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent);font-weight:600}
+
+/* drop zone */
+.drop{border:2px dashed var(--line);border-radius:var(--r);background:var(--panel);padding:28px 18px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{display:block;font-size:16px;margin-bottom:2px}
+.drop .muted{font-size:13px}
+
+/* file list */
+.files{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.files li{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:var(--panel);min-width:0}
+.files li .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.files li .meta{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+
+/* stage for page previews */
+.stage{background:#E4E4E0;border-radius:var(--r);padding:20px;overflow:auto;min-height:360px;display:flex;flex-direction:column;align-items:center;gap:20px}
+.sheet{position:relative;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.16),0 8px 24px rgba(0,0,0,.10);flex:none}
+.sheet canvas{display:block}
+.empty-note{color:var(--muted);text-align:center;margin:auto;max-width:40ch}
+
+.progress{height:6px;background:var(--soft);border-radius:4px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 6px 6px 0;font-size:13.5px}
+.note.warn{border-color:var(--warn);background:#FBF1DE}
+table.data{border-collapse:collapse;width:100%;font-size:13.5px}
+table.data th,table.data td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;white-space:nowrap}
+table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.scroll-x{overflow-x:auto}
+
+.hub-toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;max-width:calc(100% - 32px);opacity:0;pointer-events:none;transition:opacity .2s;z-index:100}
+.hub-toast.show{opacity:1}
+
+</style>
+<style>
+.bgs{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bgs button{width:34px;height:34px;border-radius:6px;border:1px solid var(--line);padding:0}
+.bgs button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--accent)}
+.checker{background-color:#fff;background-image:linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+.results{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.res{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+.res .img{aspect-ratio:1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.res .img img{max-width:100%;max-height:100%;display:block}
+.res .meta{padding:10px;display:flex;flex-direction:column;gap:8px}
+.res .meta .name{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res .status{font-size:12.5px;color:var(--muted);font-family:var(--f-mono)}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="page-head"><h1>Background Remover</h1><span class="replaces">Instead of remove.bg or Canva Pro</span>
+    <p>Remove the background from headshots and product photos, or swap in a clean color so every employee photo matches. Works on several photos at once.</p></div>
+  <div class="cols">
+    <aside>
+      <div class="panel stack">
+        <h2>Photos</h2>
+        <div class="drop" id="drop"><strong>Choose photos</strong><span class="muted">JPG or PNG, one or many</span></div>
+      </div>
+      <div class="panel stack">
+        <h2>Result</h2>
+        <div class="field"><label>Background</label>
+          <div class="bgs" id="bgs">
+            <button class="checker" data-c="" aria-pressed="true" title="Transparent" aria-label="Transparent"></button>
+            <button data-c="#FFFFFF" style="background:#fff" aria-pressed="false" aria-label="White"></button>
+            <button data-c="#E9EAE6" style="background:#E9EAE6" aria-pressed="false" aria-label="Light gray"></button>
+            <button data-c="#2E7D4F" style="background:#2E7D4F" aria-pressed="false" aria-label="GoodPWR green"></button>
+            <button data-c="#1F2124" style="background:#1F2124" aria-pressed="false" aria-label="Charcoal"></button>
+            <input type="color" id="custom" value="#3B6FD8" title="Custom color" aria-label="Custom color" style="width:40px;height:34px;border:1px solid var(--line);border-radius:6px;padding:2px">
+          </div></div>
+        <div class="field"><label for="crop">Framing</label>
+          <select id="crop"><option value="none">Keep original size</option><option value="square">Square headshot</option><option value="id">2 × 2 in ID photo (600 px)</option><option value="portrait">Portrait 4:5</option></select></div>
+        <div class="field"><label for="quality">Quality</label><select id="quality"><option value="isnet_quint8">Fast</option><option value="isnet_fp16" selected>Best</option></select></div>
+        <button class="btn" id="all" disabled>Download all (ZIP)</button>
+        <p class="small muted" id="log" style="margin:0">The first photo downloads the AI model (about 40 MB) into your browser. Your photos are never uploaded.</p>
+      </div>
+    </aside>
+    <section><div class="results" id="results"><p class="empty-note" style="grid-column:1/-1">Your cleaned-up photos appear here.</p></div></section>
+  </div>
+</main>
+<script>
+/* GoodPWR HR Hub — shared helpers used by every tool. Nothing here stores or sends data anywhere. */
+(function () {
+  const LIBS = {
+    pdfjs: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+    pdflib: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',
+    fontkit: 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
+    jszip: 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    papa: 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
+    xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    diff: 'https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js',
+    tesseract: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js',
+    qrcode: 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
+    jsbarcode: 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js'
+  };
+  const PDF_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const loaded = {};
+
+  const Hub = {
+    company: { name: 'GoodPWR', site: 'getgoodpwr.com' },
+
+    /** Load one or more libraries by key (see LIBS) or URL. Each loads once. */
+    load(...keys) {
+      return Promise.all(keys.map(k => {
+        const url = LIBS[k] || k;
+        if (!loaded[url]) loaded[url] = new Promise((res, rej) => {
+          const s = document.createElement('script'); s.src = url; s.onload = res;
+          s.onerror = () => rej(new Error('Could not load a required library. Check your internet connection and reload.'));
+          document.head.appendChild(s);
+        });
+        return loaded[url];
+      })).then(() => { if (window.pdfjsLib && !pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER; });
+    },
+
+    /** Tab icon: a dark rounded square with a green bar and a short code, so HR Hub tabs never look like the GoodPWR logo. */
+    favicon(code) {
+      const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+      x.fillStyle = '#1F2124'; x.beginPath(); x.roundRect ? x.roundRect(0, 0, 64, 64, 14) : x.rect(0, 0, 64, 64); x.fill();
+      x.fillStyle = '#5FBF84'; x.fillRect(12, 50, 40, 5);
+      x.fillStyle = '#FFFFFF'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = `700 ${code.length > 2 ? 21 : 28}px Arial, Helvetica, sans-serif`; x.fillText(code, 32, 29);
+      document.querySelectorAll('link[rel~="icon"]').forEach(l => l.remove());
+      const l = document.createElement('link'); l.rel = 'icon'; l.type = 'image/png'; l.href = c.toDataURL('image/png'); document.head.appendChild(l);
+    },
+    ICONS: { 'pdf-editor': 'PE', 'form-builder': 'FF', 'sign-pdf': 'SI', 'pdf-compare': 'CP', 'ocr': 'OCR', 'bates-numbering': 'BN', 'mail-merge': 'MM',
+      'certificate-designer': 'CD', 'social-graphics': 'AG', 'background-remover': 'BG', 'email-signature': 'ES', 'time-zones': 'TZ', 'label-maker': 'QR' },
+
+    /** Insert the shared top bar. */
+    mount(title) {
+      const file = (location.pathname.split('/').pop() || '').replace(/\.html$/, '');
+      Hub.favicon(Hub.ICONS[file] || 'HR');
+      const home = './';
+      const h = document.createElement('header'); h.className = 'hub-top';
+      h.innerHTML = `<a class="hub-brand" href="${home}index.html"><img src="${home}logo.png" alt="" onerror="this.remove()"><b>GoodPWR</b><span>HR Hub</span></a>
+        ${title ? `<span class="hub-crumb">/ <strong></strong></span>` : ''}<span class="grow"></span>
+        <span class="hub-private" title="Files are processed in your browser and never uploaded">Files stay on your computer</span>`;
+      if (title) h.querySelector('strong').textContent = title;
+      document.body.prepend(h);
+      if (title) document.title = title + ' · GoodPWR HR Hub';
+    },
+
+    toast(msg, ms = 2800) {
+      let t = document.querySelector('.hub-toast');
+      if (!t) { t = document.createElement('div'); t.className = 'hub-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(Hub._tt); Hub._tt = setTimeout(() => t.classList.remove('show'), ms);
+    },
+
+    /** Save a Blob/bytes/string as a file. */
+    download(data, filename, type) {
+      const blob = data instanceof Blob ? data : new Blob([data], { type: type || 'application/octet-stream' });
+      const u = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = u; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 5000);
+    },
+
+    async zip(files, zipName) {
+      await Hub.load('jszip');
+      const z = new JSZip(); files.forEach(f => z.file(f.name, f.data));
+      Hub.download(await z.generateAsync({ type: 'blob' }), zipName);
+    },
+
+    bytes: async f => new Uint8Array(await f.arrayBuffer()),
+    dataURL: f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }),
+    loadImage: src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }),
+    baseName: n => (n || 'file').replace(/\.[^.]+$/, ''),
+    size: b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(0) + ' KB' : (b / 1048576).toFixed(1) + ' MB',
+    esc: s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
+
+    /** Make an element a click-or-drop file picker. */
+    dropzone(el, { accept = '', multiple = false, onFiles }) {
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = accept; inp.multiple = multiple; inp.hidden = true;
+      el.after(inp); el.tabIndex = 0; el.setAttribute('role', 'button');
+      const take = list => { const fs = [...list]; if (fs.length) onFiles(multiple ? fs : [fs[0]]); };
+      el.addEventListener('click', () => inp.click());
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inp.click(); } });
+      inp.addEventListener('change', () => { take(inp.files); inp.value = ''; });
+      el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
+      el.addEventListener('dragleave', () => el.classList.remove('over'));
+      el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); take(e.dataTransfer.files); });
+      return inp;
+    },
+
+    /** Open a PDF with pdf.js (keeps the original bytes intact). */
+    async openPdf(bytes) {
+      await Hub.load('pdfjs');
+      try { return await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise; }
+      catch (e) { throw new Error(e && e.name === 'PasswordException' ? 'This PDF is password-protected. Remove the password first.' : 'That file could not be read as a PDF.'); }
+    },
+
+    /** Render a pdf.js page to a canvas at a given scale. */
+    async renderPage(page, scale, canvas, rotation) {
+      const vp = page.getViewport({ scale, rotation: rotation ?? page.rotate });
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas = canvas || document.createElement('canvas');
+      canvas.width = Math.floor(vp.width * dpr); canvas.height = Math.floor(vp.height * dpr);
+      canvas.style.width = vp.width + 'px'; canvas.style.height = vp.height + 'px';
+      const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      return { canvas, viewport: vp };
+    },
+
+    hexRgb(h) { const n = parseInt((h || '#000000').slice(1), 16); return PDFLib.rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); },
+
+    /** Make text safe for standard PDF fonts. */
+    winAnsi: s => String(s || '').normalize('NFKC').replace(/₱/g, 'PHP ')
+      .replace(/[^\n\x20-\x7E\xA0-\xFF‘’“”–—•€…]/g, '?'),
+
+    /** Read a CSV or Excel file (or pasted CSV text) into { headers, rows:[{col:value}] }. */
+    async readTable(fileOrText) {
+      let rows;
+      if (typeof fileOrText === 'string' || /\.(csv|txt|tsv)$/i.test(fileOrText.name)) {
+        await Hub.load('papa');
+        const text = typeof fileOrText === 'string' ? fileOrText : await fileOrText.text();
+        rows = Papa.parse(text.trim(), { header: true, skipEmptyLines: true, transformHeader: h => h.trim() }).data;
+      } else {
+        await Hub.load('xlsx');
+        const wb = XLSX.read(await fileOrText.arrayBuffer(), { type: 'array', cellDates: true });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', raw: false });
+      }
+      rows = rows.filter(r => Object.values(r).some(v => String(v).trim()));
+      const headers = rows.length ? Object.keys(rows[0]).filter(h => h && !/^__EMPTY/.test(h)) : [];
+      return { headers, rows };
+    },
+
+    /** Wrap text into lines that fit a width with a pdf-lib font. */
+    wrap(text, font, size, maxW) {
+      const out = [];
+      String(text).split('\n').forEach(par => {
+        if (!par.trim()) { out.push(''); return; }
+        let line = '';
+        par.split(/(\s+)/).forEach(tok => {
+          const test = line + tok;
+          if (font.widthOfTextAtSize(test.trimEnd(), size) <= maxW || !line.trim()) line = test;
+          else { out.push(line.trimEnd()); line = tok.trimStart(); }
+        });
+        out.push(line.trimEnd());
+      });
+      return out;
+    },
+
+    /** Make a small working state for a tool when there is nothing loaded yet. */
+    async samplePdf(lines, title) {
+      await Hub.load('pdflib');
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const d = await PDFDocument.create(), f = await d.embedFont(StandardFonts.Helvetica), fb = await d.embedFont(StandardFonts.HelveticaBold);
+      const p = d.addPage([612, 792]);
+      p.drawText(title, { x: 72, y: 700, size: 20, font: fb, color: rgb(.12, .13, .15) });
+      lines.forEach((l, i) => p.drawText(l, { x: 72, y: 660 - i * 22, size: 11, font: f, color: rgb(.12, .13, .15) }));
+      return await d.save();
+    }
+  };
+  window.Hub = Hub;
+})();
+
+</script>
+<script>
+Hub.mount('Background Remover');
+const $ = id => document.getElementById(id);
+let items = [], bg = '', lib = null, queue = Promise.resolve();
+async function getLib() {
+  if (!lib) lib = import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
+  return lib;
+}
+Hub.dropzone($('drop'), { accept: 'image/png,image/jpeg,image/webp', multiple: true, onFiles: fs => {
+  if (!items.length) $('results').innerHTML = '';
+  fs.forEach(f => { const it = { file: f, name: f.name, cut: null, out: null }; items.push(it); addCard(it); queue = queue.then(() => process(it)); });
+} });
+function addCard(it) {
+  const d = document.createElement('div'); d.className = 'res';
+  d.innerHTML = `<div class="img checker"><img alt=""></div><div class="meta"><span class="name"></span><span class="status">Waiting…</span><button class="btn sm primary" disabled>Download PNG</button></div>`;
+  d.querySelector('.name').textContent = it.name; it.el = d; $('results').appendChild(d);
+  Hub.dataURL(it.file).then(u => { if (!it.cut) d.querySelector('img').src = u; });
+  d.querySelector('button').onclick = () => it.out && Hub.download(it.out, Hub.baseName(it.name) + '-cutout.png');
+}
+async function process(it) {
+  const st = it.el.querySelector('.status');
+  try {
+    st.textContent = 'Loading AI model…';
+    const { removeBackground } = await getLib();
+    const blob = await removeBackground(it.file, {
+      model: $('quality').value === 'isnet_quint8' ? 'small' : 'medium',
+      progress: (k, cur, tot) => { if (/fetch/.test(k) && tot) st.textContent = `Downloading model ${Math.round(cur / tot * 100)}%`; else st.textContent = 'Removing background…'; },
+      output: { format: 'image/png' }
+    });
+    it.cut = await Hub.loadImage(URL.createObjectURL(blob));
+    await compose(it); st.textContent = 'Done'; it.el.querySelector('button').disabled = false; $('all').disabled = false;
+  } catch (e) { console.error(e); st.textContent = 'Could not process this photo.'; $('log').textContent = 'If this keeps happening, check your internet connection (the model has to download once) or try Fast quality.'; }
+}
+function alphaBox(img) {
+  const c = document.createElement('canvas'), s = Math.min(1, 400 / Math.max(img.width, img.height)); c.width = img.width * s; c.height = img.height * s;
+  const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0, c.width, c.height); const d = ctx.getImageData(0, 0, c.width, c.height).data;
+  let x0 = c.width, y0 = c.height, x1 = 0, y1 = 0;
+  for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) if (d[(y * c.width + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < x0) return { x: 0, y: 0, w: img.width, h: img.height };
+  return { x: x0 / s, y: y0 / s, w: (x1 - x0) / s, h: (y1 - y0) / s };
+}
+async function compose(it) {
+  const img = it.cut, mode = $('crop').value; let sx = 0, sy = 0, sw = img.width, sh = img.height, ow = img.width, oh = img.height;
+  if (mode !== 'none') {
+    const b = alphaBox(img), ratio = mode === 'portrait' ? 4 / 5 : 1;
+    // frame head and shoulders: width from subject width, top a little above the head
+    let w = Math.max(b.w * 1.15, b.h * .62 * ratio), h = w / ratio;
+    sx = b.x + b.w / 2 - w / 2; sy = b.y - h * .08; sw = w; sh = h;
+    ow = mode === 'id' ? 600 : Math.min(1200, Math.round(w)); oh = Math.round(ow / ratio);
+  }
+  const c = document.createElement('canvas'); c.width = ow; c.height = oh; const ctx = c.getContext('2d');
+  if (bg) { ctx.fillStyle = bg; ctx.fillRect(0, 0, ow, oh); }
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, ow, oh);
+  it.out = await new Promise(r => c.toBlob(r, 'image/png'));
+  const im = it.el.querySelector('img'); if (im.dataset.u) URL.revokeObjectURL(im.dataset.u); im.dataset.u = im.src = URL.createObjectURL(it.out);
+  it.el.querySelector('.img').classList.toggle('checker', !bg);
+}
+const recompose = () => items.filter(i => i.cut).forEach(compose);
+$('bgs').onclick = e => { const b = e.target.closest('button'); if (!b) return; bg = b.dataset.c; $('bgs').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); recompose(); };
+$('custom').oninput = e => { bg = e.target.value; $('bgs').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', false)); recompose(); };
+$('crop').onchange = recompose;
+$('all').onclick = () => { const done = items.filter(i => i.out); Hub.zip(done.map(i => ({ name: Hub.baseName(i.name) + '-cutout.png', data: i.out })), 'photos-no-background.zip'); };
+</script>
+</body>
+</html>

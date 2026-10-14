@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Email Signature Builder · GoodPWR HR Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&family=Jost:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* GoodPWR HR Hub — shared styles. Change the brand color in one place: --accent. */
+:root{
+  --bg:#F3F3F1; --panel:#FFFFFF; --line:#DEDDD8; --ink:#1F2124; --muted:#6A6C70; --soft:#ECECE8;
+  --accent:#2E7D4F; --accent-ink:#FFFFFF; --accent-soft:#E3F0E8; --danger:#B3261E; --warn:#9A6400;
+  --f-display:"Bodoni Moda", "Didot", Georgia, serif;
+  --f-body:"Jost", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:8px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+[hidden]{display:none!important}
+img{max-width:100%}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* top bar */
+.hub-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--line);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hub-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.hub-brand img{height:30px;width:auto}
+.hub-brand b{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.01em}
+.hub-brand span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.hub-crumb{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px}
+.hub-crumb strong{color:var(--ink);font-weight:600}
+.hub-top .grow{flex:1}
+.hub-private{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.hub-private::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+
+/* layout */
+.wrap{max-width:1180px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 20px;margin-bottom:18px}
+.page-head h1{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,4vw,34px);line-height:1.1;margin:0;text-wrap:balance}
+.page-head p{margin:0;color:var(--muted);max-width:62ch}
+.replaces{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:2px 10px;background:var(--panel)}
+.cols{display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start}
+.cols.wide-left{grid-template-columns:400px minmax(0,1fr)}
+@media (max-width:860px){.cols,.cols.wide-left{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.panel h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 12px}
+.panel + .panel{margin-top:16px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.between{justify-content:space-between}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:480px){.grid2,.grid3{grid-template-columns:1fr}}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.mono{font-family:var(--f-mono);font-size:13px}
+hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+
+/* form controls */
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>label,.lbl{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.field input[type=text],.field input[type=number],.field input[type=email],.field input[type=url],.field input[type=tel],.field input[type=date],.field input[type=time],
+.field select,.field textarea,.input{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
+.field textarea{min-height:90px;resize:vertical}
+.field input[type=color]{width:100%;height:38px;border:1px solid var(--line);border-radius:6px;padding:2px;background:var(--panel)}
+.check{display:flex;align-items:center;gap:8px;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:8px 14px;line-height:1.2;white-space:nowrap;text-decoration:none;color:var(--ink)}
+.btn:hover:not(:disabled){background:var(--soft)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08);background:var(--accent)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.danger{color:var(--danger)}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;border-right:1px solid var(--line);background:transparent;padding:7px 12px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent);font-weight:600}
+
+/* drop zone */
+.drop{border:2px dashed var(--line);border-radius:var(--r);background:var(--panel);padding:28px 18px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{display:block;font-size:16px;margin-bottom:2px}
+.drop .muted{font-size:13px}
+
+/* file list */
+.files{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.files li{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:var(--panel);min-width:0}
+.files li .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.files li .meta{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+
+/* stage for page previews */
+.stage{background:#E4E4E0;border-radius:var(--r);padding:20px;overflow:auto;min-height:360px;display:flex;flex-direction:column;align-items:center;gap:20px}
+.sheet{position:relative;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.16),0 8px 24px rgba(0,0,0,.10);flex:none}
+.sheet canvas{display:block}
+.empty-note{color:var(--muted);text-align:center;margin:auto;max-width:40ch}
+
+.progress{height:6px;background:var(--soft);border-radius:4px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 6px 6px 0;font-size:13.5px}
+.note.warn{border-color:var(--warn);background:#FBF1DE}
+table.data{border-collapse:collapse;width:100%;font-size:13.5px}
+table.data th,table.data td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;white-space:nowrap}
+table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.scroll-x{overflow-x:auto}
+
+.hub-toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;max-width:calc(100% - 32px);opacity:0;pointer-events:none;transition:opacity .2s;z-index:100}
+.hub-toast.show{opacity:1}
+
+</style>
+<style>
+.mail{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.mail .bar{background:var(--soft);padding:10px 14px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line)}
+.mail .content{padding:20px 22px;overflow-x:auto}
+.mail .content p.greet{font-family:Arial,sans-serif;font-size:14px;color:#333;margin:0 0 18px}
+.how{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:640px){.how{grid-template-columns:1fr}}
+.how ol{margin:6px 0 0;padding-left:20px;font-size:14px}
+.how li{margin-bottom:4px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="page-head"><h1>Email Signature Builder</h1><span class="replaces">Instead of WiseStamp or Exclaimer</span>
+    <p>Everyone gets the same polished GoodPWR signature. Fill in your details, copy, and paste it into Gmail or Outlook.</p></div>
+  <div class="cols wide-left">
+    <aside>
+      <div class="panel stack">
+        <h2>Your details</h2>
+        <div class="grid2">
+          <div class="field"><label for="name">Full name</label><input type="text" id="name" value="Jordan Rivera"></div>
+          <div class="field"><label for="title">Job title</label><input type="text" id="title" value="HR Coordinator"></div>
+          <div class="field"><label for="dept">Department</label><input type="text" id="dept" value="People Operations"></div>
+          <div class="field"><label for="pron">Pronouns (optional)</label><input type="text" id="pron" value=""></div>
+          <div class="field"><label for="phone">Office phone</label><input type="tel" id="phone" value="(555) 010-2030"></div>
+          <div class="field"><label for="mobile">Mobile (optional)</label><input type="tel" id="mobile" value=""></div>
+        </div>
+        <div class="field"><label for="email">Email</label><input type="email" id="email" value="jordan.rivera@getgoodpwr.com"></div>
+      </div>
+      <div class="panel stack">
+        <h2>Company</h2>
+        <div class="field"><label for="site">Website</label><input type="text" id="site" value="getgoodpwr.com"></div>
+        <div class="field"><label for="addr">Address (optional)</label><input type="text" id="addr" value=""></div>
+        <div class="field"><label for="linkedin">LinkedIn URL (optional)</label><input type="url" id="linkedin" value=""></div>
+        <div class="field"><label for="logo">Logo image URL</label><input type="url" id="logo"><span class="small muted">Must be a web link. Pasted pictures get removed by Gmail. The hub's own logo link is filled in for you.</span></div>
+        <div class="field"><label for="photo">Headshot URL (optional)</label><input type="url" id="photo" value=""></div>
+        <div class="field"><label for="note">Footer note (optional)</label><textarea id="note" style="min-height:56px">This email and any attachments are confidential and intended only for the recipient.</textarea></div>
+      </div>
+      <div class="panel stack">
+        <h2>Style</h2>
+        <div class="seg" id="layout"><button data-l="classic" aria-pressed="true">Classic</button><button data-l="stacked" aria-pressed="false">Stacked</button><button data-l="compact" aria-pressed="false">Compact</button></div>
+        <div class="field"><label for="accent">Accent color</label><input type="color" id="accent" value="#2E7D4F"></div>
+      </div>
+    </aside>
+    <section class="stack">
+      <div class="mail"><div class="bar">New message · preview</div><div class="content"><p class="greet">Hi team,<br><br>Thanks!</p><div id="sig"></div></div></div>
+      <div class="row"><button class="btn primary" id="copy">Copy signature</button><button class="btn" id="copyHtml">Copy HTML code</button><button class="btn" id="dl">Download .html</button></div>
+      <div class="panel how">
+        <div><b>Gmail</b><ol><li>Click <b>Copy signature</b> above.</li><li>In Gmail, open Settings ⚙ › <b>See all settings</b>.</li><li>Under <b>Signature</b>, click <b>Create new</b>, then paste.</li><li>Scroll down and click <b>Save Changes</b>.</li></ol></div>
+        <div><b>Outlook</b><ol><li>Click <b>Copy signature</b> above.</li><li>In Outlook, open Settings › <b>Mail</b> › <b>Compose and reply</b> (or <b>Signatures</b>).</li><li>Create a new signature and paste into the box.</li><li>Choose it as your default for new messages, then save.</li></ol></div>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+/* GoodPWR HR Hub — shared helpers used by every tool. Nothing here stores or sends data anywhere. */
+(function () {
+  const LIBS = {
+    pdfjs: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+    pdflib: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',
+    fontkit: 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
+    jszip: 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    papa: 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
+    xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    diff: 'https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js',
+    tesseract: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js',
+    qrcode: 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
+    jsbarcode: 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js'
+  };
+  const PDF_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const loaded = {};
+
+  const Hub = {
+    company: { name: 'GoodPWR', site: 'getgoodpwr.com' },
+
+    /** Load one or more libraries by key (see LIBS) or URL. Each loads once. */
+    load(...keys) {
+      return Promise.all(keys.map(k => {
+        const url = LIBS[k] || k;
+        if (!loaded[url]) loaded[url] = new Promise((res, rej) => {
+          const s = document.createElement('script'); s.src = url; s.onload = res;
+          s.onerror = () => rej(new Error('Could not load a required library. Check your internet connection and reload.'));
+          document.head.appendChild(s);
+        });
+        return loaded[url];
+      })).then(() => { if (window.pdfjsLib && !pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER; });
+    },
+
+    /** Tab icon: a dark rounded square with a green bar and a short code, so HR Hub tabs never look like the GoodPWR logo. */
+    favicon(code) {
+      const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+      x.fillStyle = '#1F2124'; x.beginPath(); x.roundRect ? x.roundRect(0, 0, 64, 64, 14) : x.rect(0, 0, 64, 64); x.fill();
+      x.fillStyle = '#5FBF84'; x.fillRect(12, 50, 40, 5);
+      x.fillStyle = '#FFFFFF'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = `700 ${code.length > 2 ? 21 : 28}px Arial, Helvetica, sans-serif`; x.fillText(code, 32, 29);
+      document.querySelectorAll('link[rel~="icon"]').forEach(l => l.remove());
+      const l = document.createElement('link'); l.rel = 'icon'; l.type = 'image/png'; l.href = c.toDataURL('image/png'); document.head.appendChild(l);
+    },
+    ICONS: { 'pdf-editor': 'PE', 'form-builder': 'FF', 'sign-pdf': 'SI', 'pdf-compare': 'CP', 'ocr': 'OCR', 'bates-numbering': 'BN', 'mail-merge': 'MM',
+      'certificate-designer': 'CD', 'social-graphics': 'AG', 'background-remover': 'BG', 'email-signature': 'ES', 'time-zones': 'TZ', 'label-maker': 'QR' },
+
+    /** Insert the shared top bar. */
+    mount(title) {
+      const file = (location.pathname.split('/').pop() || '').replace(/\.html$/, '');
+      Hub.favicon(Hub.ICONS[file] || 'HR');
+      const home = './';
+      const h = document.createElement('header'); h.className = 'hub-top';
+      h.innerHTML = `<a class="hub-brand" href="${home}index.html"><img src="${home}logo.png" alt="" onerror="this.remove()"><b>GoodPWR</b><span>HR Hub</span></a>
+        ${title ? `<span class="hub-crumb">/ <strong></strong></span>` : ''}<span class="grow"></span>
+        <span class="hub-private" title="Files are processed in your browser and never uploaded">Files stay on your computer</span>`;
+      if (title) h.querySelector('strong').textContent = title;
+      document.body.prepend(h);
+      if (title) document.title = title + ' · GoodPWR HR Hub';
+    },
+
+    toast(msg, ms = 2800) {
+      let t = document.querySelector('.hub-toast');
+      if (!t) { t = document.createElement('div'); t.className = 'hub-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(Hub._tt); Hub._tt = setTimeout(() => t.classList.remove('show'), ms);
+    },
+
+    /** Save a Blob/bytes/string as a file. */
+    download(data, filename, type) {
+      const blob = data instanceof Blob ? data : new Blob([data], { type: type || 'application/octet-stream' });
+      const u = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = u; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 5000);
+    },
+
+    async zip(files, zipName) {
+      await Hub.load('jszip');
+      const z = new JSZip(); files.forEach(f => z.file(f.name, f.data));
+      Hub.download(await z.generateAsync({ type: 'blob' }), zipName);
+    },
+
+    bytes: async f => new Uint8Array(await f.arrayBuffer()),
+    dataURL: f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }),
+    loadImage: src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }),
+    baseName: n => (n || 'file').replace(/\.[^.]+$/, ''),
+    size: b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(0) + ' KB' : (b / 1048576).toFixed(1) + ' MB',
+    esc: s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
+
+    /** Make an element a click-or-drop file picker. */
+    dropzone(el, { accept = '', multiple = false, onFiles }) {
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = accept; inp.multiple = multiple; inp.hidden = true;
+      el.after(inp); el.tabIndex = 0; el.setAttribute('role', 'button');
+      const take = list => { const fs = [...list]; if (fs.length) onFiles(multiple ? fs : [fs[0]]); };
+      el.addEventListener('click', () => inp.click());
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inp.click(); } });
+      inp.addEventListener('change', () => { take(inp.files); inp.value = ''; });
+      el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
+      el.addEventListener('dragleave', () => el.classList.remove('over'));
+      el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); take(e.dataTransfer.files); });
+      return inp;
+    },
+
+    /** Open a PDF with pdf.js (keeps the original bytes intact). */
+    async openPdf(bytes) {
+      await Hub.load('pdfjs');
+      try { return await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise; }
+      catch (e) { throw new Error(e && e.name === 'PasswordException' ? 'This PDF is password-protected. Remove the password first.' : 'That file could not be read as a PDF.'); }
+    },
+
+    /** Render a pdf.js page to a canvas at a given scale. */
+    async renderPage(page, scale, canvas, rotation) {
+      const vp = page.getViewport({ scale, rotation: rotation ?? page.rotate });
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas = canvas || document.createElement('canvas');
+      canvas.width = Math.floor(vp.width * dpr); canvas.height = Math.floor(vp.height * dpr);
+      canvas.style.width = vp.width + 'px'; canvas.style.height = vp.height + 'px';
+      const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      return { canvas, viewport: vp };
+    },
+
+    hexRgb(h) { const n = parseInt((h || '#000000').slice(1), 16); return PDFLib.rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); },
+
+    /** Make text safe for standard PDF fonts. */
+    winAnsi: s => String(s || '').normalize('NFKC').replace(/₱/g, 'PHP ')
+      .replace(/[^\n\x20-\x7E\xA0-\xFF‘’“”–—•€…]/g, '?'),
+
+    /** Read a CSV or Excel file (or pasted CSV text) into { headers, rows:[{col:value}] }. */
+    async readTable(fileOrText) {
+      let rows;
+      if (typeof fileOrText === 'string' || /\.(csv|txt|tsv)$/i.test(fileOrText.name)) {
+        await Hub.load('papa');
+        const text = typeof fileOrText === 'string' ? fileOrText : await fileOrText.text();
+        rows = Papa.parse(text.trim(), { header: true, skipEmptyLines: true, transformHeader: h => h.trim() }).data;
+      } else {
+        await Hub.load('xlsx');
+        const wb = XLSX.read(await fileOrText.arrayBuffer(), { type: 'array', cellDates: true });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', raw: false });
+      }
+      rows = rows.filter(r => Object.values(r).some(v => String(v).trim()));
+      const headers = rows.length ? Object.keys(rows[0]).filter(h => h && !/^__EMPTY/.test(h)) : [];
+      return { headers, rows };
+    },
+
+    /** Wrap text into lines that fit a width with a pdf-lib font. */
+    wrap(text, font, size, maxW) {
+      const out = [];
+      String(text).split('\n').forEach(par => {
+        if (!par.trim()) { out.push(''); return; }
+        let line = '';
+        par.split(/(\s+)/).forEach(tok => {
+          const test = line + tok;
+          if (font.widthOfTextAtSize(test.trimEnd(), size) <= maxW || !line.trim()) line = test;
+          else { out.push(line.trimEnd()); line = tok.trimStart(); }
+        });
+        out.push(line.trimEnd());
+      });
+      return out;
+    },
+
+    /** Make a small working state for a tool when there is nothing loaded yet. */
+    async samplePdf(lines, title) {
+      await Hub.load('pdflib');
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const d = await PDFDocument.create(), f = await d.embedFont(StandardFonts.Helvetica), fb = await d.embedFont(StandardFonts.HelveticaBold);
+      const p = d.addPage([612, 792]);
+      p.drawText(title, { x: 72, y: 700, size: 20, font: fb, color: rgb(.12, .13, .15) });
+      lines.forEach((l, i) => p.drawText(l, { x: 72, y: 660 - i * 22, size: 11, font: f, color: rgb(.12, .13, .15) }));
+      return await d.save();
+    }
+  };
+  window.Hub = Hub;
+})();
+
+</script>
+<script>
+Hub.mount('Email Signature Builder');
+const $ = id => document.getElementById(id);
+$('logo').value = new URL('logo.png', location.href).href;
+let layout = 'classic';
+const v = id => $(id).value.trim(), e = Hub.esc;
+const url = s => !s ? '' : /^https?:\/\//i.test(s) ? s : 'https://' + s;
+function build() {
+  const acc = $('accent').value, F = 'font-family:Arial,Helvetica,sans-serif;';
+  const nameLine = `<span style="${F}font-size:16px;font-weight:bold;color:#1f2124;">${e(v('name'))}</span>${v('pron') ? `<span style="${F}font-size:12px;color:#888;"> (${e(v('pron'))})</span>` : ''}`;
+  const role = [v('title'), v('dept')].filter(Boolean).map(e).join(' &middot; ');
+  const contacts = [
+    v('phone') && `<span style="color:${acc};font-weight:bold;">P</span>&nbsp;<a href="tel:${e(v('phone').replace(/[^\d+]/g, ''))}" style="color:#444;text-decoration:none;">${e(v('phone'))}</a>`,
+    v('mobile') && `<span style="color:${acc};font-weight:bold;">M</span>&nbsp;<a href="tel:${e(v('mobile').replace(/[^\d+]/g, ''))}" style="color:#444;text-decoration:none;">${e(v('mobile'))}</a>`,
+    v('email') && `<span style="color:${acc};font-weight:bold;">E</span>&nbsp;<a href="mailto:${e(v('email'))}" style="color:#444;text-decoration:none;">${e(v('email'))}</a>`,
+    v('site') && `<span style="color:${acc};font-weight:bold;">W</span>&nbsp;<a href="${e(url(v('site')))}" style="color:#444;text-decoration:none;">${e(v('site').replace(/^https?:\/\//, ''))}</a>`
+  ].filter(Boolean);
+  const extra = [v('addr') && e(v('addr')), v('linkedin') && `<a href="${e(url(v('linkedin')))}" style="color:${acc};text-decoration:none;font-weight:bold;">LinkedIn</a>`].filter(Boolean).join(' &nbsp;|&nbsp; ');
+  const logo = v('logo') ? `<img src="${e(v('logo'))}" alt="GoodPWR" height="48" style="display:block;height:48px;width:auto;border:0;">` : `<span style="font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#1f2124;">GoodPWR</span>`;
+  const photo = v('photo') ? `<img src="${e(v('photo'))}" alt="" width="72" height="72" style="display:block;width:72px;height:72px;border-radius:36px;border:0;">` : '';
+  const note = v('note') ? `<tr><td colspan="3" style="padding-top:12px;${F}font-size:10px;line-height:14px;color:#999;max-width:480px;">${e(v('note'))}</td></tr>` : '';
+  if (layout === 'compact') {
+    return `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;${F}"><tr><td style="${F}font-size:13px;line-height:19px;color:#444;">${nameLine}<span style="color:#ccc;"> &nbsp;|&nbsp; </span>${role}<br>${contacts.join(' &nbsp; ')}${extra ? '<br>' + extra : ''}</td></tr>${note}</table>`;
+  }
+  if (layout === 'stacked') {
+    return `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;${F}"><tr><td style="padding-bottom:10px;">${photo || logo}</td></tr><tr><td style="${F}font-size:13px;line-height:19px;color:#444;">${nameLine}<br><span style="color:${acc};font-weight:bold;">${role}</span></td></tr><tr><td style="padding:8px 0;"><div style="width:48px;height:3px;background:${acc};line-height:3px;font-size:0;">&nbsp;</div></td></tr><tr><td style="${F}font-size:12.5px;line-height:19px;color:#444;">${contacts.join('<br>')}${extra ? '<br>' + extra : ''}</td></tr>${photo ? `<tr><td style="padding-top:10px;">${logo}</td></tr>` : ''}${note}</table>`;
+  }
+  return `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;${F}"><tr>
+<td valign="top" style="padding-right:16px;">${photo ? photo + '<div style="height:10px;line-height:10px;font-size:0;">&nbsp;</div>' : ''}${logo}</td>
+<td valign="top" style="border-left:3px solid ${acc};padding-left:16px;${F}font-size:13px;line-height:19px;color:#444;">${nameLine}<br><span style="color:${acc};font-weight:bold;">${role}</span><br><div style="height:6px;line-height:6px;font-size:0;">&nbsp;</div>${contacts.join('<br>')}${extra ? '<br>' + extra : ''}</td>
+</tr>${note}</table>`;
+}
+function render() { $('sig').innerHTML = build(); }
+document.querySelectorAll('aside input, aside textarea').forEach(el => el.addEventListener('input', render));
+$('layout').onclick = ev => { const b = ev.target.closest('button'); if (!b) return; layout = b.dataset.l; $('layout').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); render(); };
+$('copy').onclick = async () => {
+  const html = build();
+  try { await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([$('sig').innerText], { type: 'text/plain' }) })]); Hub.toast('Signature copied. Paste it into Gmail or Outlook.'); }
+  catch (err) {
+    const r = document.createRange(); r.selectNodeContents($('sig')); const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    try { document.execCommand('copy'); Hub.toast('Signature copied. Paste it into Gmail or Outlook.'); } catch (e2) { Hub.toast('Signature selected. Press Ctrl+C to copy.'); }
+  }
+};
+$('copyHtml').onclick = async () => { try { await navigator.clipboard.writeText(build()); Hub.toast('HTML code copied.'); } catch (e2) { Hub.toast('Could not copy. Use Download .html instead.'); } };
+$('dl').onclick = () => Hub.download(`<!doctype html><meta charset="utf-8"><title>Signature</title>${build()}`, `signature-${v('name').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.html`, 'text/html');
+render();
+</script>
+</body>
+</html>

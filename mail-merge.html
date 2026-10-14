@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mail Merge to PDF · GoodPWR HR Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&family=Jost:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* GoodPWR HR Hub — shared styles. Change the brand color in one place: --accent. */
+:root{
+  --bg:#F3F3F1; --panel:#FFFFFF; --line:#DEDDD8; --ink:#1F2124; --muted:#6A6C70; --soft:#ECECE8;
+  --accent:#2E7D4F; --accent-ink:#FFFFFF; --accent-soft:#E3F0E8; --danger:#B3261E; --warn:#9A6400;
+  --f-display:"Bodoni Moda", "Didot", Georgia, serif;
+  --f-body:"Jost", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:8px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+[hidden]{display:none!important}
+img{max-width:100%}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* top bar */
+.hub-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--line);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hub-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.hub-brand img{height:30px;width:auto}
+.hub-brand b{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.01em}
+.hub-brand span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.hub-crumb{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px}
+.hub-crumb strong{color:var(--ink);font-weight:600}
+.hub-top .grow{flex:1}
+.hub-private{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.hub-private::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+
+/* layout */
+.wrap{max-width:1180px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 20px;margin-bottom:18px}
+.page-head h1{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,4vw,34px);line-height:1.1;margin:0;text-wrap:balance}
+.page-head p{margin:0;color:var(--muted);max-width:62ch}
+.replaces{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:2px 10px;background:var(--panel)}
+.cols{display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start}
+.cols.wide-left{grid-template-columns:400px minmax(0,1fr)}
+@media (max-width:860px){.cols,.cols.wide-left{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.panel h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 12px}
+.panel + .panel{margin-top:16px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.between{justify-content:space-between}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:480px){.grid2,.grid3{grid-template-columns:1fr}}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.mono{font-family:var(--f-mono);font-size:13px}
+hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+
+/* form controls */
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>label,.lbl{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.field input[type=text],.field input[type=number],.field input[type=email],.field input[type=url],.field input[type=tel],.field input[type=date],.field input[type=time],
+.field select,.field textarea,.input{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
+.field textarea{min-height:90px;resize:vertical}
+.field input[type=color]{width:100%;height:38px;border:1px solid var(--line);border-radius:6px;padding:2px;background:var(--panel)}
+.check{display:flex;align-items:center;gap:8px;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:8px 14px;line-height:1.2;white-space:nowrap;text-decoration:none;color:var(--ink)}
+.btn:hover:not(:disabled){background:var(--soft)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08);background:var(--accent)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.danger{color:var(--danger)}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;border-right:1px solid var(--line);background:transparent;padding:7px 12px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent);font-weight:600}
+
+/* drop zone */
+.drop{border:2px dashed var(--line);border-radius:var(--r);background:var(--panel);padding:28px 18px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{display:block;font-size:16px;margin-bottom:2px}
+.drop .muted{font-size:13px}
+
+/* file list */
+.files{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.files li{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:var(--panel);min-width:0}
+.files li .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.files li .meta{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+
+/* stage for page previews */
+.stage{background:#E4E4E0;border-radius:var(--r);padding:20px;overflow:auto;min-height:360px;display:flex;flex-direction:column;align-items:center;gap:20px}
+.sheet{position:relative;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.16),0 8px 24px rgba(0,0,0,.10);flex:none}
+.sheet canvas{display:block}
+.empty-note{color:var(--muted);text-align:center;margin:auto;max-width:40ch}
+
+.progress{height:6px;background:var(--soft);border-radius:4px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 6px 6px 0;font-size:13.5px}
+.note.warn{border-color:var(--warn);background:#FBF1DE}
+table.data{border-collapse:collapse;width:100%;font-size:13.5px}
+table.data th,table.data td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;white-space:nowrap}
+table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.scroll-x{overflow-x:auto}
+
+.hub-toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;max-width:calc(100% - 32px);opacity:0;pointer-events:none;transition:opacity .2s;z-index:100}
+.hub-toast.show{opacity:1}
+
+</style>
+<style>
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--line);background:#fff;border-radius:14px;padding:3px 10px;font-family:var(--f-mono);font-size:12px}
+.chips button:hover{border-color:var(--accent);background:var(--accent-soft)}
+#tpl{min-height:300px;font-family:Georgia,serif;font-size:14.5px;line-height:1.55}
+.letter{background:#fff;width:100%;max-width:640px;aspect-ratio:8.5/11;box-shadow:0 1px 3px rgba(0,0,0,.16),0 8px 24px rgba(0,0,0,.10);padding:7% 9%;font-size:clamp(9px,1.45vw,13px);line-height:1.45;color:#111;overflow:hidden;position:relative}
+.letter .lh{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--lh, #2E7D4F);padding-bottom:8px;margin-bottom:18px}
+.letter .lh b{font-family:Helvetica,Arial,sans-serif;font-size:1.5em}
+.letter .lh small{display:block;font-size:.8em;color:#555;text-align:right;white-space:pre-line}
+.letter .lh img{max-height:40px}
+.letter .body{white-space:pre-wrap}
+.letter .miss{background:#fbdcd9;color:#8c1d16;border-radius:3px;padding:0 2px}
+.fieldtag{position:absolute;border:1.5px dashed #3b6fd8;background:rgba(59,111,216,.08);color:#123;white-space:nowrap;cursor:move;touch-action:none;line-height:1;padding:1px 2px}
+.fieldtag.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.sheet.place{cursor:crosshair}
+.recnav{display:flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:13px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="page-head"><h1>Mail Merge to PDF</h1><span class="replaces">Instead of Formstack Documents or Word mail merge add-ons</span>
+    <p>Combine one template with a spreadsheet to make a personalized PDF for every row: letters, notices, certificates, badges.</p></div>
+  <div class="cols wide-left">
+    <aside>
+      <div class="panel stack">
+        <h2>1 · Spreadsheet</h2>
+        <div class="drop" id="dropData"><strong>Choose a CSV or Excel file</strong><span class="muted">The first row should have column names</span></div>
+        <p class="small muted" id="dataInfo" style="margin:0">Using example data until you load your own.</p>
+        <div class="field"><label>Columns, click to insert</label><div class="chips" id="chips"></div></div>
+      </div>
+      <div class="panel stack">
+        <h2>2 · Template</h2>
+        <div class="seg" id="mode"><button data-m="letter" aria-pressed="true">Write a letter</button><button data-m="pdf" aria-pressed="false">Use my PDF</button></div>
+        <div id="letterOpts" class="stack">
+          <div class="field"><label for="tpl">Letter text</label><textarea id="tpl"></textarea></div>
+          <div class="grid2">
+            <div class="field"><label for="font">Font</label><select id="font"><option value="TimesRoman">Times</option><option value="Helvetica">Helvetica</option></select></div>
+            <div class="field"><label for="fsize">Size</label><input type="number" id="fsize" value="11" min="8" max="16"></div>
+          </div>
+          <label class="check"><input type="checkbox" id="useLh" checked> GoodPWR letterhead</label>
+          <div class="field" id="lhWrap"><label for="addr">Letterhead address</label><textarea id="addr" style="min-height:60px">GoodPWR
+getgoodpwr.com</textarea></div>
+          <div class="drop" id="dropLogo" style="padding:12px"><strong style="font-size:14px">Logo for letterhead (optional)</strong><span class="muted">PNG or JPG</span></div>
+        </div>
+        <div id="pdfOpts" class="stack" hidden>
+          <div class="drop" id="dropPdf"><strong>Choose your template PDF</strong><span class="muted">e.g. a certificate or form, first page is used</span></div>
+          <div class="field"><label for="addCol">Add a field</label><select id="addCol"></select></div>
+          <p class="small muted" style="margin:0">Pick a column, then click on the page where it goes. Drag to move.</p>
+          <div class="stack" id="tagProps" hidden>
+            <div class="grid3">
+              <div class="field"><label for="tSize">Size</label><input type="number" id="tSize" min="6" max="96"></div>
+              <div class="field"><label for="tAlign">Align</label><select id="tAlign"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></div>
+              <div class="field"><label for="tColor">Color</label><input type="color" id="tColor"></div>
+            </div>
+            <div class="row"><select id="tFont" class="input" style="flex:1"><option value="Helvetica">Helvetica</option><option value="HelveticaBold">Helvetica Bold</option><option value="TimesRoman">Times</option><option value="TimesRomanBold">Times Bold</option><option value="TimesRomanItalic">Times Italic</option></select><button class="btn sm danger" id="tDel">Remove</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel stack">
+        <h2>3 · Output</h2>
+        <div class="seg" id="out"><button data-o="zip" aria-pressed="true">One PDF per row (ZIP)</button><button data-o="one" aria-pressed="false">All in one PDF</button></div>
+        <div class="field"><label for="fname">File name pattern</label><input type="text" id="fname" value="{{Full Name}} - Letter"></div>
+        <button class="btn primary" id="go">Generate PDFs</button>
+        <div class="progress" id="prog" hidden><i></i></div>
+      </div>
+    </aside>
+    <section class="stack">
+      <div class="row between"><h2 class="lbl" style="margin:0">Preview</h2>
+        <div class="recnav"><button class="btn sm" id="prev">‹</button><span id="recLbl"></span><button class="btn sm" id="next">›</button></div></div>
+      <div class="stage" id="stage"></div>
+    </section>
+  </div>
+</main>
+<script>
+/* GoodPWR HR Hub — shared helpers used by every tool. Nothing here stores or sends data anywhere. */
+(function () {
+  const LIBS = {
+    pdfjs: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+    pdflib: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',
+    fontkit: 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
+    jszip: 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    papa: 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
+    xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    diff: 'https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js',
+    tesseract: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js',
+    qrcode: 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
+    jsbarcode: 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js'
+  };
+  const PDF_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const loaded = {};
+
+  const Hub = {
+    company: { name: 'GoodPWR', site: 'getgoodpwr.com' },
+
+    /** Load one or more libraries by key (see LIBS) or URL. Each loads once. */
+    load(...keys) {
+      return Promise.all(keys.map(k => {
+        const url = LIBS[k] || k;
+        if (!loaded[url]) loaded[url] = new Promise((res, rej) => {
+          const s = document.createElement('script'); s.src = url; s.onload = res;
+          s.onerror = () => rej(new Error('Could not load a required library. Check your internet connection and reload.'));
+          document.head.appendChild(s);
+        });
+        return loaded[url];
+      })).then(() => { if (window.pdfjsLib && !pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER; });
+    },
+
+    /** Tab icon: a dark rounded square with a green bar and a short code, so HR Hub tabs never look like the GoodPWR logo. */
+    favicon(code) {
+      const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+      x.fillStyle = '#1F2124'; x.beginPath(); x.roundRect ? x.roundRect(0, 0, 64, 64, 14) : x.rect(0, 0, 64, 64); x.fill();
+      x.fillStyle = '#5FBF84'; x.fillRect(12, 50, 40, 5);
+      x.fillStyle = '#FFFFFF'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = `700 ${code.length > 2 ? 21 : 28}px Arial, Helvetica, sans-serif`; x.fillText(code, 32, 29);
+      document.querySelectorAll('link[rel~="icon"]').forEach(l => l.remove());
+      const l = document.createElement('link'); l.rel = 'icon'; l.type = 'image/png'; l.href = c.toDataURL('image/png'); document.head.appendChild(l);
+    },
+    ICONS: { 'pdf-editor': 'PE', 'form-builder': 'FF', 'sign-pdf': 'SI', 'pdf-compare': 'CP', 'ocr': 'OCR', 'bates-numbering': 'BN', 'mail-merge': 'MM',
+      'certificate-designer': 'CD', 'social-graphics': 'AG', 'background-remover': 'BG', 'email-signature': 'ES', 'time-zones': 'TZ', 'label-maker': 'QR' },
+
+    /** Insert the shared top bar. */
+    mount(title) {
+      const file = (location.pathname.split('/').pop() || '').replace(/\.html$/, '');
+      Hub.favicon(Hub.ICONS[file] || 'HR');
+      const home = './';
+      const h = document.createElement('header'); h.className = 'hub-top';
+      h.innerHTML = `<a class="hub-brand" href="${home}index.html"><img src="${home}logo.png" alt="" onerror="this.remove()"><b>GoodPWR</b><span>HR Hub</span></a>
+        ${title ? `<span class="hub-crumb">/ <strong></strong></span>` : ''}<span class="grow"></span>
+        <span class="hub-private" title="Files are processed in your browser and never uploaded">Files stay on your computer</span>`;
+      if (title) h.querySelector('strong').textContent = title;
+      document.body.prepend(h);
+      if (title) document.title = title + ' · GoodPWR HR Hub';
+    },
+
+    toast(msg, ms = 2800) {
+      let t = document.querySelector('.hub-toast');
+      if (!t) { t = document.createElement('div'); t.className = 'hub-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(Hub._tt); Hub._tt = setTimeout(() => t.classList.remove('show'), ms);
+    },
+
+    /** Save a Blob/bytes/string as a file. */
+    download(data, filename, type) {
+      const blob = data instanceof Blob ? data : new Blob([data], { type: type || 'application/octet-stream' });
+      const u = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = u; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 5000);
+    },
+
+    async zip(files, zipName) {
+      await Hub.load('jszip');
+      const z = new JSZip(); files.forEach(f => z.file(f.name, f.data));
+      Hub.download(await z.generateAsync({ type: 'blob' }), zipName);
+    },
+
+    bytes: async f => new Uint8Array(await f.arrayBuffer()),
+    dataURL: f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }),
+    loadImage: src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }),
+    baseName: n => (n || 'file').replace(/\.[^.]+$/, ''),
+    size: b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(0) + ' KB' : (b / 1048576).toFixed(1) + ' MB',
+    esc: s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
+
+    /** Make an element a click-or-drop file picker. */
+    dropzone(el, { accept = '', multiple = false, onFiles }) {
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = accept; inp.multiple = multiple; inp.hidden = true;
+      el.after(inp); el.tabIndex = 0; el.setAttribute('role', 'button');
+      const take = list => { const fs = [...list]; if (fs.length) onFiles(multiple ? fs : [fs[0]]); };
+      el.addEventListener('click', () => inp.click());
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inp.click(); } });
+      inp.addEventListener('change', () => { take(inp.files); inp.value = ''; });
+      el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
+      el.addEventListener('dragleave', () => el.classList.remove('over'));
+      el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); take(e.dataTransfer.files); });
+      return inp;
+    },
+
+    /** Open a PDF with pdf.js (keeps the original bytes intact). */
+    async openPdf(bytes) {
+      await Hub.load('pdfjs');
+      try { return await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise; }
+      catch (e) { throw new Error(e && e.name === 'PasswordException' ? 'This PDF is password-protected. Remove the password first.' : 'That file could not be read as a PDF.'); }
+    },
+
+    /** Render a pdf.js page to a canvas at a given scale. */
+    async renderPage(page, scale, canvas, rotation) {
+      const vp = page.getViewport({ scale, rotation: rotation ?? page.rotate });
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas = canvas || document.createElement('canvas');
+      canvas.width = Math.floor(vp.width * dpr); canvas.height = Math.floor(vp.height * dpr);
+      canvas.style.width = vp.width + 'px'; canvas.style.height = vp.height + 'px';
+      const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      return { canvas, viewport: vp };
+    },
+
+    hexRgb(h) { const n = parseInt((h || '#000000').slice(1), 16); return PDFLib.rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); },
+
+    /** Make text safe for standard PDF fonts. */
+    winAnsi: s => String(s || '').normalize('NFKC').replace(/₱/g, 'PHP ')
+      .replace(/[^\n\x20-\x7E\xA0-\xFF‘’“”–—•€…]/g, '?'),
+
+    /** Read a CSV or Excel file (or pasted CSV text) into { headers, rows:[{col:value}] }. */
+    async readTable(fileOrText) {
+      let rows;
+      if (typeof fileOrText === 'string' || /\.(csv|txt|tsv)$/i.test(fileOrText.name)) {
+        await Hub.load('papa');
+        const text = typeof fileOrText === 'string' ? fileOrText : await fileOrText.text();
+        rows = Papa.parse(text.trim(), { header: true, skipEmptyLines: true, transformHeader: h => h.trim() }).data;
+      } else {
+        await Hub.load('xlsx');
+        const wb = XLSX.read(await fileOrText.arrayBuffer(), { type: 'array', cellDates: true });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', raw: false });
+      }
+      rows = rows.filter(r => Object.values(r).some(v => String(v).trim()));
+      const headers = rows.length ? Object.keys(rows[0]).filter(h => h && !/^__EMPTY/.test(h)) : [];
+      return { headers, rows };
+    },
+
+    /** Wrap text into lines that fit a width with a pdf-lib font. */
+    wrap(text, font, size, maxW) {
+      const out = [];
+      String(text).split('\n').forEach(par => {
+        if (!par.trim()) { out.push(''); return; }
+        let line = '';
+        par.split(/(\s+)/).forEach(tok => {
+          const test = line + tok;
+          if (font.widthOfTextAtSize(test.trimEnd(), size) <= maxW || !line.trim()) line = test;
+          else { out.push(line.trimEnd()); line = tok.trimStart(); }
+        });
+        out.push(line.trimEnd());
+      });
+      return out;
+    },
+
+    /** Make a small working state for a tool when there is nothing loaded yet. */
+    async samplePdf(lines, title) {
+      await Hub.load('pdflib');
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const d = await PDFDocument.create(), f = await d.embedFont(StandardFonts.Helvetica), fb = await d.embedFont(StandardFonts.HelveticaBold);
+      const p = d.addPage([612, 792]);
+      p.drawText(title, { x: 72, y: 700, size: 20, font: fb, color: rgb(.12, .13, .15) });
+      lines.forEach((l, i) => p.drawText(l, { x: 72, y: 660 - i * 22, size: 11, font: f, color: rgb(.12, .13, .15) }));
+      return await d.save();
+    }
+  };
+  window.Hub = Hub;
+})();
+
+</script>
+<script>
+Hub.mount('Mail Merge to PDF');
+const $ = id => document.getElementById(id);
+const S = {
+  headers: ['Full Name', 'Position', 'Start Date', 'Manager'],
+  rows: [
+    { 'Full Name': 'Alex Morgan', Position: 'Field Technician', 'Start Date': 'November 3, 2026', Manager: 'Dana Lee' },
+    { 'Full Name': 'Priya Shah', Position: 'Project Coordinator', 'Start Date': 'November 10, 2026', Manager: 'Sam Ortiz' },
+    { 'Full Name': 'Marco Reyes', Position: 'Installer', 'Start Date': 'November 17, 2026', Manager: 'Dana Lee' }
+  ],
+  mode: 'letter', out: 'zip', rec: 0, logo: null, pdf: null, tags: [], sel: null, pv: null, sample: true
+};
+let uid = 1;
+$('tpl').value = `{{Today}}
+
+Dear {{Full Name}},
+
+Welcome to GoodPWR! We are excited to confirm your start date of {{Start Date}} as {{Position}}.
+
+On your first day, please report to the main office at 8:00 AM. Your manager, {{Manager}}, will meet you there and walk you through orientation, safety training and your equipment.
+
+If you have any questions before then, reply to this letter or call the HR team.
+
+Sincerely,
+
+
+Human Resources
+GoodPWR`;
+const today = () => new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+const fill = (s, r) => s.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (m, k) => k === 'Today' ? today() : (r[k] ?? ''));
+const missing = (s, r) => [...s.matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)].map(m => m[1]).filter(k => k !== 'Today' && !(k in r));
+
+function renderChips() {
+  $('chips').innerHTML = ['Today', ...S.headers].map(h => `<button data-h="${Hub.esc(h)}">{{${Hub.esc(h)}}}</button>`).join('');
+  $('addCol').innerHTML = '<option value="">Choose a column…</option>' + S.headers.map(h => `<option>${Hub.esc(h)}</option>`).join('');
+  $('dataInfo').textContent = S.sample ? 'Using example data until you load your own.' : `${S.rows.length} rows · ${S.headers.length} columns`;
+}
+$('chips').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return; const tag = `{{${b.dataset.h}}}`;
+  if (S.mode === 'letter') { const t = $('tpl'), a = t.selectionStart, z = t.selectionEnd; t.value = t.value.slice(0, a) + tag + t.value.slice(z); t.focus(); t.selectionStart = t.selectionEnd = a + tag.length; preview(); }
+  else { $('addCol').value = b.dataset.h; $('addCol').dispatchEvent(new Event('change')); }
+};
+Hub.dropzone($('dropData'), { accept: '.csv,.txt,.xlsx,.xls', onFiles: async ([f]) => {
+  try { const t = await Hub.readTable(f); if (!t.rows.length) throw new Error('empty'); S.headers = t.headers; S.rows = t.rows; S.sample = false; S.rec = 0; renderChips(); preview(); Hub.toast(`Loaded ${t.rows.length} rows.`); }
+  catch (e) { Hub.toast('That spreadsheet could not be read. Save it as CSV or XLSX with column names in the first row.'); }
+} });
+Hub.dropzone($('dropLogo'), { accept: 'image/png,image/jpeg', onFiles: async ([f]) => { S.logo = { url: await Hub.dataURL(f), png: f.type === 'image/png' }; preview(); } });
+$('mode').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.mode = b.dataset.m; $('mode').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); $('letterOpts').hidden = S.mode !== 'letter'; $('pdfOpts').hidden = S.mode !== 'pdf'; preview(); };
+$('out').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.out = b.dataset.o; $('out').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); };
+['tpl', 'addr', 'fsize', 'font'].forEach(id => $(id).addEventListener('input', preview));
+$('useLh').onchange = () => { $('lhWrap').hidden = !$('useLh').checked; preview(); };
+$('prev').onclick = () => { S.rec = (S.rec - 1 + S.rows.length) % S.rows.length; preview(); };
+$('next').onclick = () => { S.rec = (S.rec + 1) % S.rows.length; preview(); };
+
+/* ---------- letter preview ---------- */
+function preview() {
+  $('recLbl').textContent = `Row ${S.rec + 1} of ${S.rows.length}`;
+  const r = S.rows[S.rec] || {}, st = $('stage');
+  if (S.mode === 'letter') {
+    const body = Hub.esc($('tpl').value).replace(/\{\{\s*([^}]+?)\s*\}\}/g, (m, k) => k === 'Today' ? today() : (k in r ? Hub.esc(r[k]) : `<span class="miss" title="No column named ${Hub.esc(k)}">{{${Hub.esc(k)}}}</span>`));
+    st.innerHTML = `<div class="letter" style="font-family:${$('font').value === 'TimesRoman' ? 'Georgia,Times,serif' : 'Helvetica,Arial,sans-serif'}">${$('useLh').checked ? `<div class="lh">${S.logo ? `<img src="${S.logo.url}" alt="">` : '<b>GoodPWR</b>'}<small>${Hub.esc($('addr').value)}</small></div>` : ''}<div class="body">${body}</div></div>`;
+  } else drawPdfPreview();
+}
+
+/* ---------- PDF template mode ---------- */
+Hub.dropzone($('dropPdf'), { accept: 'application/pdf,.pdf', onFiles: async ([f]) => {
+  try { const bytes = await Hub.bytes(f), doc = await Hub.openPdf(bytes); S.pdf = { bytes, name: f.name, page: await doc.getPage(1) }; S.tags = []; S.pv = null; preview(); }
+  catch (e) { Hub.toast(e.message); }
+} });
+async function drawPdfPreview() {
+  const st = $('stage');
+  if (!S.pdf) { st.innerHTML = '<p class="empty-note">Choose the PDF you want to fill, such as a certificate or form.</p>'; return; }
+  if (!S.pv) {
+    const v1 = S.pdf.page.getViewport({ scale: 1 }), scale = Math.min((st.clientWidth - 40) / v1.width, 1.4);
+    const sh = document.createElement('div'); sh.className = 'sheet place';
+    const { canvas, viewport } = await Hub.renderPage(S.pdf.page, scale);
+    sh.style.width = viewport.width + 'px'; sh.style.height = viewport.height + 'px'; sh.appendChild(canvas);
+    S.pv = { el: sh, scale, v1 }; sh.addEventListener('pointerdown', sheetDown);
+  }
+  st.innerHTML = ''; st.appendChild(S.pv.el); drawTags();
+}
+function drawTags() {
+  if (!S.pv) return; const r = S.rows[S.rec] || {}, sc = S.pv.scale;
+  S.pv.el.querySelectorAll('.fieldtag').forEach(n => n.remove());
+  for (const t of S.tags) {
+    const d = document.createElement('div'); d.className = 'fieldtag' + (t.id === S.sel ? ' sel' : ''); d.dataset.id = t.id;
+    d.textContent = (r[t.col] ?? '') || `{{${t.col}}}`;
+    const bold = /Bold/.test(t.font), it = /Italic/.test(t.font), serif = /Times/.test(t.font);
+    Object.assign(d.style, { fontSize: t.size * sc + 'px', color: t.color, fontWeight: bold ? 700 : 400, fontStyle: it ? 'italic' : 'normal', fontFamily: serif ? 'Times,serif' : 'Helvetica,Arial,sans-serif' });
+    S.pv.el.appendChild(d);
+    const w = d.offsetWidth, left = t.align === 'center' ? t.x * sc - w / 2 : t.align === 'right' ? t.x * sc - w : t.x * sc;
+    d.style.left = left + 'px'; d.style.top = (t.y - t.size * .85) * sc + 'px';
+  }
+}
+let drag = null;
+function sheetDown(e) {
+  const r = S.pv.el.getBoundingClientRect(), x = (e.clientX - r.left) / S.pv.scale, y = (e.clientY - r.top) / S.pv.scale, hit = e.target.closest('.fieldtag');
+  if (hit) { const t = S.tags.find(q => q.id === +hit.dataset.id); selectTag(t.id); drag = { t, sx: x, sy: y, ox: t.x, oy: t.y }; S.pv.el.setPointerCapture(e.pointerId); return; }
+  const col = $('addCol').value; if (!col) { selectTag(null); return; }
+  const t = { id: uid++, col, x, y: y + 8, size: 18, align: 'left', color: '#111111', font: 'Helvetica' }; S.tags.push(t); $('addCol').value = ''; selectTag(t.id);
+}
+document.addEventListener('pointermove', e => { if (!drag) return; const r = S.pv.el.getBoundingClientRect(); drag.t.x = drag.ox + (e.clientX - r.left) / S.pv.scale - drag.sx; drag.t.y = drag.oy + (e.clientY - r.top) / S.pv.scale - drag.sy; drawTags(); });
+document.addEventListener('pointerup', () => { drag = null; });
+function selectTag(id) {
+  S.sel = id; const t = S.tags.find(q => q.id === id); $('tagProps').hidden = !t;
+  if (t) { $('tSize').value = t.size; $('tAlign').value = t.align; $('tColor').value = t.color; $('tFont').value = t.font; }
+  drawTags();
+}
+const curTag = () => S.tags.find(q => q.id === S.sel);
+$('tSize').oninput = e => { curTag().size = +e.target.value || 12; drawTags(); };
+$('tAlign').onchange = e => { const t = curTag(); t.align = e.target.value; drawTags(); };
+$('tColor').oninput = e => { curTag().color = e.target.value; drawTags(); };
+$('tFont').onchange = e => { curTag().font = e.target.value; drawTags(); };
+$('tDel').onclick = () => { S.tags = S.tags.filter(q => q.id !== S.sel); selectTag(null); };
+
+/* ---------- generate ---------- */
+async function buildLetter(doc, r, fonts) {
+  const W = 612, H = 792, M = 72, size = +$('fsize').value || 11, font = fonts.body, lh = size * 1.45, { rgb } = PDFLib;
+  let page = doc.addPage([W, H]), y = H - M;
+  if ($('useLh').checked) {
+    if (fonts.logo) { const s = Math.min(40 / fonts.logo.height, 160 / fonts.logo.width); page.drawImage(fonts.logo, { x: M, y: H - 52 - fonts.logo.height * s, width: fonts.logo.width * s, height: fonts.logo.height * s }); }
+    else page.drawText('GoodPWR', { x: M, y: H - 72, size: 20, font: fonts.bold, color: rgb(.12, .13, .15) });
+    $('addr').value.split('\n').forEach((l, i) => { const t = Hub.winAnsi(l), w = fonts.sans.widthOfTextAtSize(t, 8.5); page.drawText(t, { x: W - M - w, y: H - 58 - i * 11, size: 8.5, font: fonts.sans, color: rgb(.35, .35, .35) }); });
+    page.drawLine({ start: { x: M, y: H - 92 }, end: { x: W - M, y: H - 92 }, thickness: 1.5, color: Hub.hexRgb('#2E7D4F') });
+    y = H - 122;
+  }
+  for (const line of Hub.wrap(Hub.winAnsi(fill($('tpl').value, r)), font, size, W - 2 * M)) {
+    if (y < M) { page = doc.addPage([W, H]); y = H - M; }
+    if (line) page.drawText(line, { x: M, y, size, font, color: rgb(.07, .07, .07) });
+    y -= lh;
+  }
+}
+async function buildFromPdf(doc, r, tpl, fonts) {
+  const [pg] = await doc.copyPages(tpl, [0]); doc.addPage(pg);
+  for (const t of S.tags) {
+    const txt = Hub.winAnsi(r[t.col] ?? ''); if (!txt) continue;
+    const f = fonts[t.font] || (fonts[t.font] = await doc.embedFont(PDFLib.StandardFonts[t.font])), w = f.widthOfTextAtSize(txt, t.size);
+    const ax = t.align === 'center' ? t.x - w / 2 : t.align === 'right' ? t.x - w : t.x;
+    const [x, y] = S.pv.v1.convertToPdfPoint(ax, t.y);
+    pg.drawText(txt, { x, y, size: t.size, font: f, color: Hub.hexRgb(t.color) });
+  }
+}
+$('go').onclick = async () => {
+  if (S.mode === 'pdf' && (!S.pdf || !S.tags.length)) { Hub.toast(S.pdf ? 'Add at least one field to the page.' : 'Choose your template PDF first.'); return; }
+  if (S.mode === 'letter') { const miss = missing($('tpl').value, S.rows[0] || {}); if (miss.length) { Hub.toast(`No column named: ${miss.join(', ')}. Fix the template or the spreadsheet.`, 5000); return; } }
+  $('go').disabled = true; $('prog').hidden = false; const bar = $('prog').firstElementChild;
+  try {
+    await Hub.load('pdflib');
+    const { PDFDocument, StandardFonts } = PDFLib, files = [], one = S.out === 'one' ? await PDFDocument.create() : null;
+    const tpl = S.mode === 'pdf' ? await PDFDocument.load(S.pdf.bytes, { ignoreEncryption: true }) : null;
+    let shared = null;
+    const used = new Set();
+    for (let i = 0; i < S.rows.length; i++) {
+      const r = S.rows[i], doc = one || await PDFDocument.create();
+      let fonts = one ? shared : null;
+      if (!fonts) {
+        fonts = { body: await doc.embedFont(StandardFonts[$('font').value]), bold: await doc.embedFont(StandardFonts.HelveticaBold), sans: await doc.embedFont(StandardFonts.Helvetica) };
+        if (S.logo && S.mode === 'letter') fonts.logo = S.logo.png ? await doc.embedPng(S.logo.url) : await doc.embedJpg(S.logo.url);
+        if (one) shared = fonts;
+      }
+      if (S.mode === 'letter') await buildLetter(doc, r, fonts); else await buildFromPdf(doc, r, tpl, fonts);
+      if (!one) {
+        let nm = (fill($('fname').value, r).replace(/[\\/:*?"<>|]+/g, '-').trim() || `document-${i + 1}`), base = nm, k = 2;
+        while (used.has(nm)) nm = `${base} (${k++})`; used.add(nm);
+        files.push({ name: nm + '.pdf', data: await doc.save() });
+      }
+      bar.style.width = ((i + 1) / S.rows.length * 100) + '%';
+      if (i % 20 === 19) await new Promise(r => setTimeout(r));
+    }
+    if (one) Hub.download(await one.save(), 'mail-merge.pdf', 'application/pdf');
+    else if (files.length === 1) Hub.download(files[0].data, files[0].name, 'application/pdf');
+    else await Hub.zip(files, 'mail-merge.zip');
+    Hub.toast(`Generated ${S.rows.length} document${S.rows.length > 1 ? 's' : ''}.`);
+  } catch (e) { console.error(e); Hub.toast('Could not generate: ' + e.message); }
+  $('go').disabled = false; setTimeout(() => { $('prog').hidden = true; bar.style.width = 0; }, 800);
+};
+renderChips(); preview();
+</script>
+</body>
+</html>

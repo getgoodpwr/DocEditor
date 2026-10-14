@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fillable Form Builder · GoodPWR HR Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&family=Jost:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* GoodPWR HR Hub — shared styles. Change the brand color in one place: --accent. */
+:root{
+  --bg:#F3F3F1; --panel:#FFFFFF; --line:#DEDDD8; --ink:#1F2124; --muted:#6A6C70; --soft:#ECECE8;
+  --accent:#2E7D4F; --accent-ink:#FFFFFF; --accent-soft:#E3F0E8; --danger:#B3261E; --warn:#9A6400;
+  --f-display:"Bodoni Moda", "Didot", Georgia, serif;
+  --f-body:"Jost", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:8px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+[hidden]{display:none!important}
+img{max-width:100%}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* top bar */
+.hub-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--line);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hub-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.hub-brand img{height:30px;width:auto}
+.hub-brand b{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.01em}
+.hub-brand span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.hub-crumb{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px}
+.hub-crumb strong{color:var(--ink);font-weight:600}
+.hub-top .grow{flex:1}
+.hub-private{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.hub-private::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+
+/* layout */
+.wrap{max-width:1180px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 20px;margin-bottom:18px}
+.page-head h1{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,4vw,34px);line-height:1.1;margin:0;text-wrap:balance}
+.page-head p{margin:0;color:var(--muted);max-width:62ch}
+.replaces{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:2px 10px;background:var(--panel)}
+.cols{display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start}
+.cols.wide-left{grid-template-columns:400px minmax(0,1fr)}
+@media (max-width:860px){.cols,.cols.wide-left{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;min-width:0}
+.panel h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 12px}
+.panel + .panel{margin-top:16px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.between{justify-content:space-between}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:480px){.grid2,.grid3{grid-template-columns:1fr}}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.mono{font-family:var(--f-mono);font-size:13px}
+hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+
+/* form controls */
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>label,.lbl{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.field input[type=text],.field input[type=number],.field input[type=email],.field input[type=url],.field input[type=tel],.field input[type=date],.field input[type=time],
+.field select,.field textarea,.input{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
+.field textarea{min-height:90px;resize:vertical}
+.field input[type=color]{width:100%;height:38px;border:1px solid var(--line);border-radius:6px;padding:2px;background:var(--panel)}
+.check{display:flex;align-items:center;gap:8px;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:8px 14px;line-height:1.2;white-space:nowrap;text-decoration:none;color:var(--ink)}
+.btn:hover:not(:disabled){background:var(--soft)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08);background:var(--accent)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn.danger{color:var(--danger)}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;border-right:1px solid var(--line);background:transparent;padding:7px 12px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent);font-weight:600}
+
+/* drop zone */
+.drop{border:2px dashed var(--line);border-radius:var(--r);background:var(--panel);padding:28px 18px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{display:block;font-size:16px;margin-bottom:2px}
+.drop .muted{font-size:13px}
+
+/* file list */
+.files{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.files li{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:var(--panel);min-width:0}
+.files li .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.files li .meta{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+
+/* stage for page previews */
+.stage{background:#E4E4E0;border-radius:var(--r);padding:20px;overflow:auto;min-height:360px;display:flex;flex-direction:column;align-items:center;gap:20px}
+.sheet{position:relative;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.16),0 8px 24px rgba(0,0,0,.10);flex:none}
+.sheet canvas{display:block}
+.empty-note{color:var(--muted);text-align:center;margin:auto;max-width:40ch}
+
+.progress{height:6px;background:var(--soft);border-radius:4px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:8px 12px;border-radius:0 6px 6px 0;font-size:13.5px}
+.note.warn{border-color:var(--warn);background:#FBF1DE}
+table.data{border-collapse:collapse;width:100%;font-size:13.5px}
+table.data th,table.data td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;white-space:nowrap}
+table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.scroll-x{overflow-x:auto}
+
+.hub-toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;max-width:calc(100% - 32px);opacity:0;pointer-events:none;transition:opacity .2s;z-index:100}
+.hub-toast.show{opacity:1}
+
+</style>
+<style>
+.ftypes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ftypes button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 10px;text-align:left;display:flex;gap:8px;align-items:center}
+.ftypes button i{width:18px;height:14px;border:1.5px solid currentColor;border-radius:2px;flex:none;font-style:normal;font-size:10px;line-height:11px;text-align:center}
+.ftypes button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.sheet.drawing{cursor:crosshair;touch-action:none}
+.fld{position:absolute;border:1.5px solid #3b6fd8;background:rgba(59,111,216,.10);border-radius:2px;cursor:move;touch-action:none;font-size:11px;color:#2a4fa0;overflow:hidden;font-family:var(--f-mono)}
+.fld span{position:absolute;left:3px;top:1px;white-space:nowrap;pointer-events:none}
+.fld.sig{border-color:#b07a00;background:rgba(245,196,0,.16);color:#7a5400}
+.fld.check{border-color:#2E7D4F;background:rgba(46,125,79,.12);color:#2E7D4F}
+.fld.sel{box-shadow:0 0 0 2px var(--accent)}
+.fld .h{position:absolute;right:0;bottom:0;width:10px;height:10px;background:var(--accent);cursor:nwse-resize;display:none}
+.fld.sel .h{display:block}
+.flist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:220px;overflow:auto}
+.flist li{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:5px;padding:5px 8px;font-size:13px;cursor:pointer}
+.flist li.sel{border-color:var(--accent);background:var(--accent-soft)}
+.flist li .mono{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.pg-label{font-size:12px;color:var(--muted);font-family:var(--f-mono);margin-bottom:-12px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="page-head"><h1>Fillable Form Builder</h1><span class="replaces">Instead of Acrobat Pro or Jotform PDF Editor</span>
+    <p>Turn any PDF into a form people can fill in on their computer or phone. Draw the fields where they belong, name them, and download the fillable PDF.</p></div>
+  <div class="cols">
+    <aside>
+      <div class="panel stack">
+        <h2>1 · Document</h2>
+        <div class="drop" id="drop"><strong>Choose a PDF</strong><span class="muted">or drop it here</span></div>
+        <div class="row between small" id="docInfo" hidden><span class="mono" id="docName"></span><button class="btn sm" id="swap">Change file</button></div>
+      </div>
+      <div class="panel stack">
+        <h2>2 · Draw fields</h2>
+        <div class="ftypes" id="ftypes">
+          <button data-t="text" aria-pressed="true"><i>T</i>Text</button>
+          <button data-t="multi" aria-pressed="false"><i>¶</i>Paragraph</button>
+          <button data-t="check" aria-pressed="false"><i>✓</i>Checkbox</button>
+          <button data-t="drop" aria-pressed="false"><i>▾</i>Dropdown</button>
+          <button data-t="date" aria-pressed="false"><i>#</i>Date</button>
+          <button data-t="sig" aria-pressed="false"><i>✎</i>Signature</button>
+        </div>
+        <p class="small muted" style="margin:0">Drag on the page to draw the selected field. Click a field to edit it.</p>
+        <ul class="flist" id="flist"></ul>
+      </div>
+      <div class="panel stack" id="props" hidden>
+        <h2>Selected field</h2>
+        <div class="field"><label for="pName">Field name</label><input type="text" id="pName"></div>
+        <div class="grid2">
+          <div class="field" id="wrapSize"><label for="pSize">Font size</label><input type="number" id="pSize" min="0" max="36" step="1"><span class="small muted">0 = auto</span></div>
+          <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" id="pReq"> Required</label></div>
+        </div>
+        <div class="field" id="wrapOpts"><label for="pOpts">Dropdown options (one per line)</label><textarea id="pOpts"></textarea></div>
+        <div class="field" id="wrapDef"><label for="pDef">Default value</label><input type="text" id="pDef"></div>
+        <div class="row"><button class="btn sm" id="dup">Duplicate</button><button class="btn sm danger" id="del">Delete</button></div>
+      </div>
+      <div class="panel stack">
+        <label class="check"><input type="checkbox" id="keepOld" checked> Keep fields already in the PDF</label>
+        <button class="btn primary" id="save" disabled>Download fillable PDF</button>
+      </div>
+    </aside>
+    <section class="stage" id="stage"><p class="empty-note">Choose a PDF to start. You can also <a href="#" id="sample">try a sample form</a>.</p></section>
+  </div>
+</main>
+<script>
+/* GoodPWR HR Hub — shared helpers used by every tool. Nothing here stores or sends data anywhere. */
+(function () {
+  const LIBS = {
+    pdfjs: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+    pdflib: 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',
+    fontkit: 'https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js',
+    jszip: 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    papa: 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
+    xlsx: 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+    diff: 'https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.1.0/diff.min.js',
+    tesseract: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js',
+    qrcode: 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
+    jsbarcode: 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js'
+  };
+  const PDF_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const loaded = {};
+
+  const Hub = {
+    company: { name: 'GoodPWR', site: 'getgoodpwr.com' },
+
+    /** Load one or more libraries by key (see LIBS) or URL. Each loads once. */
+    load(...keys) {
+      return Promise.all(keys.map(k => {
+        const url = LIBS[k] || k;
+        if (!loaded[url]) loaded[url] = new Promise((res, rej) => {
+          const s = document.createElement('script'); s.src = url; s.onload = res;
+          s.onerror = () => rej(new Error('Could not load a required library. Check your internet connection and reload.'));
+          document.head.appendChild(s);
+        });
+        return loaded[url];
+      })).then(() => { if (window.pdfjsLib && !pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER; });
+    },
+
+    /** Tab icon: a dark rounded square with a green bar and a short code, so HR Hub tabs never look like the GoodPWR logo. */
+    favicon(code) {
+      const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+      x.fillStyle = '#1F2124'; x.beginPath(); x.roundRect ? x.roundRect(0, 0, 64, 64, 14) : x.rect(0, 0, 64, 64); x.fill();
+      x.fillStyle = '#5FBF84'; x.fillRect(12, 50, 40, 5);
+      x.fillStyle = '#FFFFFF'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = `700 ${code.length > 2 ? 21 : 28}px Arial, Helvetica, sans-serif`; x.fillText(code, 32, 29);
+      document.querySelectorAll('link[rel~="icon"]').forEach(l => l.remove());
+      const l = document.createElement('link'); l.rel = 'icon'; l.type = 'image/png'; l.href = c.toDataURL('image/png'); document.head.appendChild(l);
+    },
+    ICONS: { 'pdf-editor': 'PE', 'form-builder': 'FF', 'sign-pdf': 'SI', 'pdf-compare': 'CP', 'ocr': 'OCR', 'bates-numbering': 'BN', 'mail-merge': 'MM',
+      'certificate-designer': 'CD', 'social-graphics': 'AG', 'background-remover': 'BG', 'email-signature': 'ES', 'time-zones': 'TZ', 'label-maker': 'QR' },
+
+    /** Insert the shared top bar. */
+    mount(title) {
+      const file = (location.pathname.split('/').pop() || '').replace(/\.html$/, '');
+      Hub.favicon(Hub.ICONS[file] || 'HR');
+      const home = './';
+      const h = document.createElement('header'); h.className = 'hub-top';
+      h.innerHTML = `<a class="hub-brand" href="${home}index.html"><img src="${home}logo.png" alt="" onerror="this.remove()"><b>GoodPWR</b><span>HR Hub</span></a>
+        ${title ? `<span class="hub-crumb">/ <strong></strong></span>` : ''}<span class="grow"></span>
+        <span class="hub-private" title="Files are processed in your browser and never uploaded">Files stay on your computer</span>`;
+      if (title) h.querySelector('strong').textContent = title;
+      document.body.prepend(h);
+      if (title) document.title = title + ' · GoodPWR HR Hub';
+    },
+
+    toast(msg, ms = 2800) {
+      let t = document.querySelector('.hub-toast');
+      if (!t) { t = document.createElement('div'); t.className = 'hub-toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+      t.textContent = msg; t.classList.add('show'); clearTimeout(Hub._tt); Hub._tt = setTimeout(() => t.classList.remove('show'), ms);
+    },
+
+    /** Save a Blob/bytes/string as a file. */
+    download(data, filename, type) {
+      const blob = data instanceof Blob ? data : new Blob([data], { type: type || 'application/octet-stream' });
+      const u = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = u; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(u), 5000);
+    },
+
+    async zip(files, zipName) {
+      await Hub.load('jszip');
+      const z = new JSZip(); files.forEach(f => z.file(f.name, f.data));
+      Hub.download(await z.generateAsync({ type: 'blob' }), zipName);
+    },
+
+    bytes: async f => new Uint8Array(await f.arrayBuffer()),
+    dataURL: f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); }),
+    loadImage: src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }),
+    baseName: n => (n || 'file').replace(/\.[^.]+$/, ''),
+    size: b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(0) + ' KB' : (b / 1048576).toFixed(1) + ' MB',
+    esc: s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
+
+    /** Make an element a click-or-drop file picker. */
+    dropzone(el, { accept = '', multiple = false, onFiles }) {
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = accept; inp.multiple = multiple; inp.hidden = true;
+      el.after(inp); el.tabIndex = 0; el.setAttribute('role', 'button');
+      const take = list => { const fs = [...list]; if (fs.length) onFiles(multiple ? fs : [fs[0]]); };
+      el.addEventListener('click', () => inp.click());
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inp.click(); } });
+      inp.addEventListener('change', () => { take(inp.files); inp.value = ''; });
+      el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
+      el.addEventListener('dragleave', () => el.classList.remove('over'));
+      el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); take(e.dataTransfer.files); });
+      return inp;
+    },
+
+    /** Open a PDF with pdf.js (keeps the original bytes intact). */
+    async openPdf(bytes) {
+      await Hub.load('pdfjs');
+      try { return await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise; }
+      catch (e) { throw new Error(e && e.name === 'PasswordException' ? 'This PDF is password-protected. Remove the password first.' : 'That file could not be read as a PDF.'); }
+    },
+
+    /** Render a pdf.js page to a canvas at a given scale. */
+    async renderPage(page, scale, canvas, rotation) {
+      const vp = page.getViewport({ scale, rotation: rotation ?? page.rotate });
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas = canvas || document.createElement('canvas');
+      canvas.width = Math.floor(vp.width * dpr); canvas.height = Math.floor(vp.height * dpr);
+      canvas.style.width = vp.width + 'px'; canvas.style.height = vp.height + 'px';
+      const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      return { canvas, viewport: vp };
+    },
+
+    hexRgb(h) { const n = parseInt((h || '#000000').slice(1), 16); return PDFLib.rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); },
+
+    /** Make text safe for standard PDF fonts. */
+    winAnsi: s => String(s || '').normalize('NFKC').replace(/₱/g, 'PHP ')
+      .replace(/[^\n\x20-\x7E\xA0-\xFF‘’“”–—•€…]/g, '?'),
+
+    /** Read a CSV or Excel file (or pasted CSV text) into { headers, rows:[{col:value}] }. */
+    async readTable(fileOrText) {
+      let rows;
+      if (typeof fileOrText === 'string' || /\.(csv|txt|tsv)$/i.test(fileOrText.name)) {
+        await Hub.load('papa');
+        const text = typeof fileOrText === 'string' ? fileOrText : await fileOrText.text();
+        rows = Papa.parse(text.trim(), { header: true, skipEmptyLines: true, transformHeader: h => h.trim() }).data;
+      } else {
+        await Hub.load('xlsx');
+        const wb = XLSX.read(await fileOrText.arrayBuffer(), { type: 'array', cellDates: true });
+        rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', raw: false });
+      }
+      rows = rows.filter(r => Object.values(r).some(v => String(v).trim()));
+      const headers = rows.length ? Object.keys(rows[0]).filter(h => h && !/^__EMPTY/.test(h)) : [];
+      return { headers, rows };
+    },
+
+    /** Wrap text into lines that fit a width with a pdf-lib font. */
+    wrap(text, font, size, maxW) {
+      const out = [];
+      String(text).split('\n').forEach(par => {
+        if (!par.trim()) { out.push(''); return; }
+        let line = '';
+        par.split(/(\s+)/).forEach(tok => {
+          const test = line + tok;
+          if (font.widthOfTextAtSize(test.trimEnd(), size) <= maxW || !line.trim()) line = test;
+          else { out.push(line.trimEnd()); line = tok.trimStart(); }
+        });
+        out.push(line.trimEnd());
+      });
+      return out;
+    },
+
+    /** Make a small working state for a tool when there is nothing loaded yet. */
+    async samplePdf(lines, title) {
+      await Hub.load('pdflib');
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const d = await PDFDocument.create(), f = await d.embedFont(StandardFonts.Helvetica), fb = await d.embedFont(StandardFonts.HelveticaBold);
+      const p = d.addPage([612, 792]);
+      p.drawText(title, { x: 72, y: 700, size: 20, font: fb, color: rgb(.12, .13, .15) });
+      lines.forEach((l, i) => p.drawText(l, { x: 72, y: 660 - i * 22, size: 11, font: f, color: rgb(.12, .13, .15) }));
+      return await d.save();
+    }
+  };
+  window.Hub = Hub;
+})();
+
+</script>
+<script>
+Hub.mount('Fillable Form Builder');
+const $ = id => document.getElementById(id);
+const S = { bytes: null, name: '', pdf: null, pages: [], fields: [], sel: null, type: 'text' };
+const LABEL = { text: 'Text', multi: 'Paragraph', check: 'Checkbox', drop: 'Dropdown', date: 'Date', sig: 'Signature' };
+const DEF = { text: [180, 20], multi: [300, 70], check: [14, 14], drop: [150, 20], date: [100, 20], sig: [200, 36] };
+let uid = 1;
+
+async function openDoc(bytes, name) {
+  try {
+    S.pdf = await Hub.openPdf(bytes); S.bytes = bytes; S.name = name; S.fields = []; S.sel = null;
+    $('drop').hidden = true; $('docInfo').hidden = false; $('docName').textContent = `${name} · ${S.pdf.numPages} page${S.pdf.numPages > 1 ? 's' : ''}`;
+    $('save').disabled = false; await renderPages(); refresh();
+  } catch (e) { Hub.toast(e.message); }
+}
+async function renderPages() {
+  const st = $('stage'); st.innerHTML = ''; S.pages = [];
+  const avail = Math.max(260, st.clientWidth - 40);
+  for (let i = 1; i <= S.pdf.numPages; i++) {
+    const pg = await S.pdf.getPage(i), v1 = pg.getViewport({ scale: 1 }), scale = Math.min(avail / v1.width, 1.5);
+    const lab = document.createElement('div'); lab.className = 'pg-label'; lab.textContent = `Page ${i}`; st.appendChild(lab);
+    const sh = document.createElement('div'); sh.className = 'sheet drawing';
+    const { canvas, viewport } = await Hub.renderPage(pg, scale);
+    sh.style.width = viewport.width + 'px'; sh.style.height = viewport.height + 'px'; sh.appendChild(canvas); st.appendChild(sh);
+    S.pages.push({ el: sh, v1, scale });
+    sh.addEventListener('pointerdown', e => sheetDown(e, i - 1));
+  }
+  drawFields();
+}
+const drop = Hub.dropzone($('drop'), { accept: 'application/pdf,.pdf', onFiles: async ([f]) => openDoc(await Hub.bytes(f), f.name) });
+$('swap').onclick = () => drop.click();
+$('sample').onclick = async e => { e.preventDefault(); openDoc(await Hub.samplePdf(['Full name', '', 'Department', '', 'Start date', '', 'I have read the employee handbook', '', 'Signature'], 'New Hire Information'), 'sample-new-hire.pdf'); };
+
+$('ftypes').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.type = b.dataset.t; $('ftypes').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); };
+
+function uniqueName(base) { let n = 1, nm; do { nm = `${base}_${n++}`; } while (S.fields.some(f => f.name === nm)); return nm; }
+let act = null;
+function sheetDown(e, pi) {
+  if (e.button > 0) return;
+  const p = S.pages[pi], r = p.el.getBoundingClientRect(), x = (e.clientX - r.left) / p.scale, y = (e.clientY - r.top) / p.scale;
+  const hit = e.target.closest('.fld');
+  if (hit) {
+    const f = S.fields.find(q => q.id === +hit.dataset.id); select(f.id);
+    act = { mode: e.target.classList.contains('h') ? 'resize' : 'move', f, sx: x, sy: y, o: { ...f }, p }; p.el.setPointerCapture(e.pointerId); return;
+  }
+  e.preventDefault();
+  const t = S.type, f = { id: uid++, type: t, page: pi, x, y, w: 1, h: 1, name: uniqueName(LABEL[t].toLowerCase()), size: 0, req: false, opts: t === 'drop' ? ['Option 1', 'Option 2', 'Option 3'] : [], def: '' };
+  S.fields.push(f); act = { mode: 'draw', f, sx: x, sy: y, p }; p.el.setPointerCapture(e.pointerId); drawFields();
+}
+document.addEventListener('pointermove', e => {
+  if (!act) return; const { p, f } = act, r = p.el.getBoundingClientRect(), x = (e.clientX - r.left) / p.scale, y = (e.clientY - r.top) / p.scale;
+  if (act.mode === 'draw') { f.x = Math.min(act.sx, x); f.y = Math.min(act.sy, y); f.w = Math.abs(x - act.sx); f.h = Math.abs(y - act.sy); if (f.type === 'check') f.h = f.w; }
+  else if (act.mode === 'move') { f.x = act.o.x + x - act.sx; f.y = act.o.y + y - act.sy; }
+  else { f.w = Math.max(8, act.o.w + x - act.sx); f.h = f.type === 'check' ? f.w : Math.max(8, act.o.h + y - act.sy); }
+  placeEl(f);
+});
+document.addEventListener('pointerup', () => {
+  if (!act) return; const { f, mode } = act; act = null;
+  if (mode === 'draw') { if (f.w < 6 || f.h < 6) { const [w, h] = DEF[f.type]; f.w = w; f.h = h; f.x -= 0; } select(f.id); }
+  drawFields(); refresh();
+});
+function placeEl(f) {
+  const el = document.querySelector(`.fld[data-id="${f.id}"]`), sc = S.pages[f.page].scale; if (!el) return;
+  Object.assign(el.style, { left: f.x * sc + 'px', top: f.y * sc + 'px', width: f.w * sc + 'px', height: f.h * sc + 'px' });
+}
+function drawFields() {
+  document.querySelectorAll('.fld').forEach(n => n.remove());
+  S.fields.forEach(f => {
+    const el = document.createElement('div'); el.className = `fld ${f.type}` + (f.id === S.sel ? ' sel' : ''); el.dataset.id = f.id;
+    el.innerHTML = `<span>${f.type === 'check' ? '' : Hub.esc(f.name)}${f.req ? ' *' : ''}</span><i class="h"></i>`;
+    S.pages[f.page].el.appendChild(el); placeEl(f);
+  });
+}
+function select(id) { S.sel = id; drawFields(); refresh(); }
+function refresh() {
+  $('flist').innerHTML = S.fields.map(f => `<li data-id="${f.id}" class="${f.id === S.sel ? 'sel' : ''}"><span class="mono">${Hub.esc(f.name)}</span><span class="small muted">${LABEL[f.type]} · p${f.page + 1}</span></li>`).join('') || '<li class="small muted" style="cursor:default">No fields yet</li>';
+  const f = S.fields.find(q => q.id === S.sel); $('props').hidden = !f; if (!f) return;
+  $('pName').value = f.name; $('pSize').value = f.size; $('pReq').checked = f.req; $('pOpts').value = f.opts.join('\n'); $('pDef').value = f.def;
+  $('wrapOpts').hidden = f.type !== 'drop'; $('wrapDef').hidden = f.type === 'check' || f.type === 'sig'; $('wrapSize').hidden = f.type === 'check';
+}
+$('flist').onclick = e => { const li = e.target.closest('li[data-id]'); if (li) { select(+li.dataset.id); document.querySelector(`.fld[data-id="${li.dataset.id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }); } };
+const cur = () => S.fields.find(q => q.id === S.sel);
+$('pName').onchange = e => { const f = cur(), v = e.target.value.trim().replace(/[.\s]+/g, '_'); if (!v) return; if (S.fields.some(q => q !== f && q.name === v)) { Hub.toast('Another field already uses that name.'); e.target.value = f.name; return; } f.name = v; drawFields(); refresh(); };
+$('pSize').onchange = e => { cur().size = Math.max(0, +e.target.value || 0); };
+$('pReq').onchange = e => { cur().req = e.target.checked; drawFields(); };
+$('pOpts').onchange = e => { cur().opts = e.target.value.split('\n').map(s => s.trim()).filter(Boolean); };
+$('pDef').onchange = e => { cur().def = e.target.value; };
+$('del').onclick = () => { S.fields = S.fields.filter(q => q.id !== S.sel); S.sel = null; drawFields(); refresh(); };
+$('dup').onclick = () => { const f = cur(), n = { ...f, id: uid++, y: f.y + f.h + 8, name: uniqueName(f.name.replace(/_\d+$/, '')), opts: [...f.opts] }; S.fields.push(n); select(n.id); };
+document.addEventListener('keydown', e => { if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; if ((e.key === 'Delete' || e.key === 'Backspace') && S.sel) $('del').click(); });
+
+$('save').onclick = async () => {
+  if (!S.fields.length) { Hub.toast('Draw at least one field first.'); return; }
+  const bad = S.fields.find(f => f.type === 'drop' && !f.opts.length); if (bad) { select(bad.id); Hub.toast('Give the dropdown at least one option.'); return; }
+  $('save').disabled = true; $('save').textContent = 'Building…';
+  try {
+    await Hub.load('pdflib');
+    const { PDFDocument, StandardFonts, rgb } = PDFLib;
+    const doc = await PDFDocument.load(S.bytes, { ignoreEncryption: true }), form = doc.getForm();
+    if (!$('keepOld').checked) form.getFields().forEach(f => { try { form.removeField(f); } catch (e) {} });
+    const helv = await doc.embedFont(StandardFonts.Helvetica);
+    const existing = new Set(form.getFields().map(f => f.getName()));
+    for (const f of S.fields) {
+      let name = f.name; while (existing.has(name)) name += '_x'; existing.add(name);
+      const p = S.pages[f.page], a = p.v1.convertToPdfPoint(f.x, f.y), b = p.v1.convertToPdfPoint(f.x + f.w, f.y + f.h);
+      const box = { x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), width: Math.abs(a[0] - b[0]), height: Math.abs(a[1] - b[1]), font: helv,
+        borderColor: rgb(.55, .58, .62), borderWidth: 1, backgroundColor: f.type === 'sig' ? rgb(1, .98, .88) : rgb(.94, .96, 1) };
+      const page = doc.getPage(f.page);
+      if (f.type === 'check') { const c = form.createCheckBox(name); c.addToPage(page, { ...box, backgroundColor: rgb(1, 1, 1) }); if (f.req) c.enableRequired(); }
+      else if (f.type === 'drop') { const d = form.createDropdown(name); d.addOptions(f.opts.map(Hub.winAnsi)); if (f.def && f.opts.includes(f.def)) d.select(Hub.winAnsi(f.def)); d.addToPage(page, box); if (f.size) d.setFontSize(f.size); if (f.req) d.enableRequired(); }
+      else {
+        const t = form.createTextField(name);
+        if (f.type === 'multi') t.enableMultiline();
+        if (f.def) t.setText(Hub.winAnsi(f.def));
+        t.addToPage(page, box); if (f.size) t.setFontSize(f.size);
+        if (f.req) t.enableRequired();
+      }
+    }
+    form.updateFieldAppearances(helv);
+    Hub.download(await doc.save(), Hub.baseName(S.name) + '-fillable.pdf', 'application/pdf'); Hub.toast('Fillable PDF downloaded.');
+  } catch (e) { console.error(e); Hub.toast('Could not build the form: ' + e.message); }
+  $('save').disabled = false; $('save').textContent = 'Download fillable PDF';
+};
+let rz; new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { if (S.pdf && !act) renderPages(); }, 250); }).observe($('stage'));
+</script>
+</body>
+</html>
