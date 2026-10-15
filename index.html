@@ -196,7 +196,7 @@ table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;col
       const l = document.createElement('link'); l.rel = 'icon'; l.type = 'image/png'; l.href = c.toDataURL('image/png'); document.head.appendChild(l);
     },
     ICONS: { 'pdf-editor': 'PE', 'form-builder': 'FF', 'sign-pdf': 'SI', 'pdf-compare': 'CP', 'ocr': 'OCR', 'bates-numbering': 'BN', 'mail-merge': 'MM',
-      'certificate-designer': 'CD', 'social-graphics': 'AG', 'background-remover': 'BG', 'email-signature': 'ES', 'time-zones': 'TZ', 'label-maker': 'QR' },
+      'certificate-designer': 'CD', 'social-graphics': 'AG', 'background-remover': 'BG', 'email-signature': 'ES', 'time-zones': 'TZ', 'label-maker': 'QR', 'lock-pdf': 'LK' },
 
     /** Insert the shared top bar. */
     mount(title) {
@@ -335,6 +335,7 @@ const TOOLS = [
     ['pdf-editor', 'PDF Editor', 'Edit existing text, highlight, draw, white-out, and merge, split, rotate or reorder pages.', 'Adobe Acrobat Pro'],
     ['form-builder', 'Fillable Form Builder', 'Turn any PDF into a fillable form with text boxes, checkboxes, dropdowns and signature fields.', 'Acrobat Pro, Jotform'],
     ['sign-pdf', 'Fill & Sign', 'Fill in forms, sign them, and download a locked copy that can\'t be changed.', 'DocuSign, Adobe Sign'],
+    ['lock-pdf', 'Lock PDF', 'Turn a filled-in form into a final copy nobody can edit, in any app.', 'Acrobat Pro Flatten'],
     ['pdf-compare', 'Compare PDFs', 'See exactly what changed between two versions of a contract or policy.', 'Acrobat Compare, Draftable'],
     ['ocr', 'OCR / Searchable Scans', 'Turn scanned pages and photos into searchable, copyable PDFs.', 'Acrobat Pro, ABBYY'],
     ['bates-numbering', 'Bates Numbering', 'Stamp legal-style page numbers across one or many PDFs.', 'Acrobat Pro'],
