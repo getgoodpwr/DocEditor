@@ -124,6 +124,7 @@ svg .sel{stroke-dasharray:4 3}
       <button class="btn" id="bOpen">Open PDF</button>
       <button class="btn" id="bAdd">Add pages from PDF</button>
       <button class="btn" id="bBlank">Insert blank page</button>
+      <button class="btn" id="bUnlock" hidden title="Make a copy where the locked form fields can be edited again">Unlock form</button>
     </div>
     <div class="grp">
       <button class="btn" id="bUndo" disabled title="Undo (Ctrl+Z)">Undo</button>
@@ -428,6 +429,7 @@ async function openFile(file) {
     S.pages = Array.from({ length: count }, (_, i) => ({ id: uid++, src: idx, index: i, rot: 0, annots: [], pick: false }));
     S.cur = 0; S.sel = null; dirty = false; S.fileName = file.name; S.sample = false; undoS = []; redoS = [];
     refreshAll(); toast(`Opened ${file.name} · ${count} page${count > 1 ? 's' : ''}`);
+    checkLocked(bytes);
   } catch (e) { toast(e && e.name === 'PasswordException' ? 'This PDF is password-protected. Remove the password and try again.' : 'That file could not be read as a PDF.'); }
 }
 async function addFiles(files) {
@@ -835,6 +837,26 @@ async function save(onlyPicked) {
   } catch (e) { console.error(e); toast('Could not build the PDF. ' + ((e && e.message) || '')); }
   btn.textContent = label; updButtons();
 }
+
+/* ---------- unlock a locked form (HR only) ---------- */
+async function checkLocked(bytes) {
+  $('bUnlock').hidden = true;
+  try {
+    const form = (await PDFDocument.load(bytes, { ignoreEncryption: true })).getForm(), fields = form.getFields();
+    const locked = fields.some(f => { try { return f.getName() === 'gpwr_locked' ? f.getText() === 'yes' : f.isReadOnly(); } catch (e) { return false; } });
+    if (locked) { $('bUnlock').hidden = false; toast('This form is locked. Use "Unlock form" to make an editable copy.', 4500); }
+  } catch (e) {}
+}
+$('bUnlock').onclick = async () => {
+  const src = S.docs[0]; if (!src) return;
+  try {
+    const doc = await PDFDocument.load(src.bytes, { ignoreEncryption: true }), form = doc.getForm();
+    for (const f of form.getFields()) { try { if (f.getName() === 'gpwr_locked') f.setText(''); else f.disableReadOnly(); } catch (e) {} }
+    const name = (S.fileName || 'form.pdf').replace(/\.pdf$/i, '') + '-unlocked.pdf', blob = new Blob([await doc.save()], { type: 'application/pdf' });
+    const u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000);
+    toast(`Downloaded ${name}. Its fields can be edited again, and it locks again when saved.`, 5000);
+  } catch (e) { toast('Could not unlock this form: ' + e.message); }
+};
 
 /* ---------- wiring ---------- */
 $('bOpen').onclick = () => $('fOpen').click();

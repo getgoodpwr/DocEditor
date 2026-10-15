@@ -132,14 +132,19 @@ table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;col
 .item.sel .h,.item.sel .x{display:block}
 .sheet.placing{cursor:copy}
 .item{z-index:3}
-.ff{position:absolute;z-index:2}
+.ff{position:absolute;z-index:2;color-scheme:light}
+.sigspot{color-scheme:light}
 .ff input[type=text],.ff textarea,.ff select{display:block;width:100%;height:100%;border:1px solid rgba(201,145,62,.95);background:rgba(255,246,222,.92);color:#111;font-family:Helvetica,Arial,sans-serif;padding:0 3px;border-radius:2px;margin:0;resize:none;outline:none;min-height:0}
 .ff textarea{padding:2px 3px;line-height:1.2}
 .ff input:focus,.ff textarea:focus,.ff select:focus{background:#fff;box-shadow:0 0 0 2px rgba(217,162,78,.55)}
 .ff input[type=checkbox],.ff input[type=radio]{display:block;width:100%;height:100%;margin:0;accent-color:#111;cursor:pointer}
 .ff.missing input,.ff.missing textarea,.ff.missing select{border-color:#e5484d;box-shadow:0 0 0 2px rgba(229,72,77,.45)}
-.sigspot{position:absolute;z-index:2;border:2px dashed #D9A24E;background:rgba(217,162,78,.16);color:#6b4a10;display:flex;align-items:center;justify-content:center;font:600 12px Jost,sans-serif;cursor:pointer;border-radius:3px;padding:0}
-.sigspot:hover{background:rgba(217,162,78,.32)}
+.sigspot{position:absolute;z-index:2;border:2px dashed #D9A24E;background:rgba(255,246,222,.92);display:flex;align-items:stretch;border-radius:3px;padding:0}
+.sigspot:focus-within{background:#fff;box-shadow:0 0 0 2px rgba(217,162,78,.55)}
+.sigtype{flex:1;min-width:0;height:100%;border:0;background:transparent;font-family:"Great Vibes","Dancing Script",cursive;color:#14213d;padding:0 6px;outline:none}
+.sigtype::placeholder{font:500 12px Jost,sans-serif;color:#7a5614}
+.sigdraw{border:0;background:transparent;cursor:pointer;font-size:14px;padding:0 6px;color:#7a5614}
+.sigdraw:hover{background:rgba(217,162,78,.25)}
 .sigspot.missing{border-color:#e5484d}
 .sigspot.done{display:none}
 .pg-label{font-size:12px;color:var(--muted);font-family:var(--f-mono);margin-bottom:-12px}
@@ -148,7 +153,7 @@ table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;col
 <body>
 <main class="wrap">
   <div class="page-head"><h1>Fill &amp; Sign</h1><span class="replaces">Instead of DocuSign or Adobe Sign for self-signing</span>
-    <p>Fill in a form, sign it, and download a locked copy that can't be changed. Works with any PDF: click "Click to sign" boxes, or place your signature anywhere.</p></div>
+    <p>Fill in a form, type your name in the signature boxes, and download a locked copy that can't be changed. You can also place a signature anywhere on any PDF.</p></div>
   <div class="cols">
     <aside>
       <div class="panel stack">
@@ -157,7 +162,7 @@ table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;col
         <div class="row between small" id="docInfo" hidden><span class="mono" id="docName"></span><button class="btn sm" id="swap">Change file</button></div>
       </div>
       <div class="panel stack">
-        <h2>2 · Your signature</h2>
+        <h2>2 · Your signature <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional for forms)</span></h2>
         <div class="seg" id="kindSeg"><button aria-pressed="true" data-k="sig">Signature</button><button aria-pressed="false" data-k="ini">Initials</button></div>
         <div class="seg" id="modeSeg"><button aria-pressed="true" data-m="type">Type</button><button aria-pressed="false" data-m="draw">Draw</button><button aria-pressed="false" data-m="upload">Upload</button></div>
         <div id="mType" class="stack">
@@ -455,7 +460,7 @@ $('modeSeg').onclick = e => {
   if (S.mode === 'draw') requestAnimationFrame(sizePad);
 };
 $('typedName').addEventListener('input', () => { renderTypedOpts(); clearTimeout(makeTyped.t); makeTyped.t = setTimeout(makeTyped, 300); });
-$('inkColor').onchange = () => { renderTypedOpts(); if (S.mode === 'type') makeTyped(); };
+$('inkColor').onchange = () => { renderTypedOpts(); if (S.mode === 'type') makeTyped(); document.querySelectorAll('.sigtype').forEach(i => i.style.color = $('inkColor').value); };
 
 /* ---------- document ---------- */
 async function openDoc(bytes, name) {
@@ -499,7 +504,7 @@ async function readFields() {
       if (!kind || !a.rect) continue;
       const f = { id: 'f' + (n++), page: i - 1, name: a.fieldName, kind, rect: a.rect, required: !!a.required,
         opts: (a.options || []).map(o => ({ v: String(o.exportValue ?? o.displayValue ?? ''), t: String(o.displayValue ?? o.exportValue ?? '') })),
-        on: a.exportValue || a.buttonValue || 'Yes', size: (a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 0, maxLen: a.maxLen || 0, comb: !!a.comb, align: a.textAlignment || 0, init: a.fieldValue };
+        on: a.exportValue || a.buttonValue || 'Yes', size: (a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 0, maxLen: a.maxLen || 0, comb: !!a.comb, align: a.textAlignment || 0, init: a.fieldValue, isDate: /^date/i.test(a.fieldName.split('.').pop()) || /^date/i.test(a.alternativeText || '') };
       S.fields.push(f);
       if (!(f.name in S.values)) {
         const v = a.fieldValue;
@@ -521,6 +526,7 @@ async function readFields() {
 }
 const isFilled = f => f.kind === 'check' ? true : f.kind === 'radio' ? !!S.values[f.name] : String(S.values[f.name] ?? '').trim() !== '';
 const signedSpots = () => new Set(S.items.filter(i => i.spot).map(i => i.spot));
+const sigDone = f => signedSpots().has(f.id) || String(S.values[f.name] ?? '').trim() !== '';
 function viewRect(p, rect, vp) { const [x1, y1] = vp.convertToViewportPoint(rect[0], rect[1]), [x2, y2] = vp.convertToViewportPoint(rect[2], rect[3]); return { L: Math.min(x1, x2), T: Math.min(y1, y2), W: Math.abs(x2 - x1), H: Math.abs(y2 - y1) }; }
 function drawFields() {
   document.querySelectorAll('.ff,.sigspot').forEach(n => n.remove());
@@ -529,9 +535,17 @@ function drawFields() {
     const { L, T, W, H } = viewRect(p, f.rect, p.vp);
     let el;
     if (f.kind === 'sig') {
-      el = document.createElement('button'); el.type = 'button'; el.className = 'sigspot'; el.textContent = H > 18 ? 'Click to sign' : 'Sign';
-      el.addEventListener('pointerdown', e => e.stopPropagation());
-      el.addEventListener('click', e => { e.stopPropagation(); signSpot(f); });
+      el = document.createElement('div'); el.className = 'sigspot';
+      const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'sigtype'; inp.dataset.fid = f.id;
+      inp.placeholder = H > 18 ? 'Type your name to sign' : 'Sign'; inp.value = S.values[f.name] || '';
+      inp.setAttribute('aria-label', 'Signature: type your name'); inp.style.fontSize = Math.max(11, Math.min(H * .72, 36)) + 'px';
+      inp.style.color = $('inkColor').value;
+      inp.addEventListener('input', () => { S.values[f.name] = inp.value; syncSame(f, inp); updateFormInfo(); el.classList.remove('missing'); });
+      inp.addEventListener('change', () => { if (inp.value.trim()) stampDates(false); });
+      const use = document.createElement('button'); use.type = 'button'; use.className = 'sigdraw'; use.textContent = '✍';
+      use.title = 'Use the signature from step 2 instead (drawn or uploaded)'; use.setAttribute('aria-label', use.title);
+      use.addEventListener('click', e => { e.stopPropagation(); signSpot(f); });
+      el.append(inp, use); el.addEventListener('pointerdown', e => e.stopPropagation());
     } else {
       el = document.createElement('div'); el.className = 'ff';
       let inp;
@@ -564,6 +578,16 @@ function drawFields() {
     el.dataset.fid = f.id; p.el.appendChild(el);
   }
 }
+/** Fill date fields with today's date (MM/DD/YYYY) when the form is signed. */
+function stampDates(onlyEmpty) {
+  const d = new Date(), p2 = n => String(n).padStart(2, '0'), today = `${p2(d.getMonth() + 1)}/${p2(d.getDate())}/${d.getFullYear()}`;
+  for (const f of S.fields) {
+    if (!f.isDate || f.kind !== 'text' || (onlyEmpty && String(S.values[f.name] || '').trim())) continue;
+    S.values[f.name] = today;
+    document.querySelectorAll(`input[data-fid="${f.id}"]`).forEach(i => { i.value = today; });
+  }
+  updateFormInfo();
+}
 function syncSame(f, src) {
   document.querySelectorAll('input[data-fid],textarea[data-fid],select[data-fid]').forEach(n => {
     if (n === src) return; const g = S.fields.find(q => q.id === n.dataset.fid);
@@ -577,7 +601,15 @@ function signSpot(f) {
   let w = W * .94, h = w / m.ratio; if (h > H * .92) { h = H * .92; w = h * m.ratio; }
   S.items = S.items.filter(i => i.spot !== f.id);
   S.items.push({ id: uid++, type: 'img', url: m.url, w, h, page: f.page, x: L + (W - w) / 2, y: T + (H - h) / 2, spot: f.id, cover: [L, T, W, H] });
-  S.confirmUnsigned = false; drawItems(); updateFormInfo();
+  S.confirmUnsigned = false; drawItems(); stampDates(false);
+}
+/** Turn a typed name into a cursive signature image. */
+async function typedSignature(text) {
+  try { await document.fonts.load('80px "Great Vibes"'); } catch (e) {}
+  const c = document.createElement('canvas'), ctx = c.getContext('2d'), fs = 120, face = `${fs}px "Great Vibes", "Dancing Script", cursive`;
+  ctx.font = face; c.width = Math.ceil(ctx.measureText(text).width) + 60; c.height = Math.round(fs * 1.6);
+  ctx.font = face; ctx.fillStyle = $('inkColor').value; ctx.textBaseline = 'middle'; ctx.fillText(text, 30, c.height / 2);
+  return trimCanvas(c);
 }
 function updateFormInfo() {
   if (!S.fields || !S.fields.length) return;
@@ -585,12 +617,12 @@ function updateFormInfo() {
   const sigs = S.fields.filter(f => f.kind === 'sig'), sp = signedSpots();
   const parts = [];
   if (uniq.length) parts.push(`${uniq.filter(isFilled).length} of ${uniq.length} fields filled`);
-  if (sigs.length) parts.push(`${sigs.filter(f => sp.has(f.id)).length} of ${sigs.length} signed`);
+  if (sigs.length) parts.push(`${sigs.filter(sigDone).length} of ${sigs.length} signed`);
   $('formInfo').textContent = parts.join(' · ') || `${S.fields.length} checkbox${S.fields.length > 1 ? 'es' : ''}`;
 }
 function firstMissing(requiredOnly) {
   const sp = signedSpots();
-  return S.fields.find(f => f.kind === 'sig' ? !sp.has(f.id) && !requiredOnly : f.kind !== 'check' && (!requiredOnly || f.required) && !isFilled(f));
+  return S.fields.find(f => f.kind === 'sig' ? !sigDone(f) && !requiredOnly : f.kind !== 'check' && (!requiredOnly || f.required) && !isFilled(f));
 }
 function goToField(f) {
   const el = document.querySelector(`.ff[data-fid="${f.id}"], .sigspot[data-fid="${f.id}"]`); if (!el) return;
@@ -763,7 +795,7 @@ $('save').onclick = async () => {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   const reqMissing = firstMissing(true);
   if (reqMissing) { Hub.toast('Fill in the required fields first. The missing one is outlined in red.', 4500); goToField(reqMissing); return; }
-  const unsigned = S.fields.filter(f => f.kind === 'sig' && !signedSpots().has(f.id));
+  const unsigned = S.fields.filter(f => f.kind === 'sig' && !sigDone(f));
   if (unsigned.length && !S.confirmUnsigned) {
     S.confirmUnsigned = true; goToField(unsigned[0]);
     Hub.toast(`${unsigned.length} signature box${unsigned.length > 1 ? 'es are' : ' is'} not signed yet. Click Download again to save anyway.`, 5000); return;
@@ -775,7 +807,18 @@ $('save').onclick = async () => {
     const doc = await PDFDocument.load(S.bytes, { ignoreEncryption: true });
     const font = await doc.embedFont(StandardFonts.Helvetica), sym = await doc.embedFont(StandardFonts.ZapfDingbats), imgs = {};
     const lock = S.fields.length ? $('lockForm').checked : true;
+    if (lock) stampDates(true);
     await fillAndLock(doc, font, sym, lock);
+    const placed = signedSpots();
+    for (const f of S.fields) {
+      const t = String(S.values[f.name] ?? '').trim();
+      if (f.kind !== 'sig' || placed.has(f.id) || !t) continue;
+      const m = await typedSignature(t); if (!m) continue;
+      const img = await doc.embedPng(m.url), page = doc.getPage(f.page), [x1, y1, x2, y2] = f.rect, W = x2 - x1, H = y2 - y1;
+      let w = W * .94, h = w / m.ratio; if (h > H * .9) { h = H * .9; w = h * m.ratio; }
+      page.drawRectangle({ x: x1 - 1.5, y: y1 - 1.5, width: W + 3, height: H + 3, color: rgb(1, 1, 1) });
+      page.drawImage(img, { x: x1 + (W - w) / 2, y: y1 + (H - h) / 2, width: w, height: h });
+    }
     for (const it of S.items) {
       const p = S.pages[it.page], page = doc.getPage(it.page), R = (p.v1.rotation || 0);
       const toPdf = (x, y) => p.v1.convertToPdfPoint(x, y);

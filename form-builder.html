@@ -138,7 +138,7 @@ table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;col
 <body>
 <main class="wrap">
   <div class="page-head"><h1>Fillable Form Builder</h1><span class="replaces">Instead of Acrobat Pro or Jotform PDF Editor</span>
-    <p>Turn any PDF into a form people can fill in. Draw the fields where they belong and download the fillable PDF. People then open it in <a href="sign-pdf.html">Fill &amp; Sign</a> to fill it in, sign the signature boxes, and download a locked copy.</p></div>
+    <p>Turn any PDF, like a W-9, into a form clients can fill in with their own PDF app. They type their name in the signature box, and the form locks itself so the saved copy can't be changed.</p></div>
   <div class="cols">
     <aside>
       <div class="panel stack">
@@ -172,6 +172,8 @@ table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;col
       </div>
       <div class="panel stack">
         <label class="check"><input type="checkbox" id="keepOld" checked> Keep fields already in the PDF</label>
+        <label class="check"><input type="checkbox" id="lockOnSign" checked> Lock the form once it's filled in and saved</label>
+        <p class="small muted" style="margin:0">When the client saves after filling it in (or types their name in a signature box), every field becomes read-only for good. Date fields fill in with today's date automatically. Works in Adobe Acrobat Reader, Chrome, Edge and Firefox. HR can unlock a copy in the PDF Editor.</p>
         <button class="btn primary" id="save" disabled>Download fillable PDF</button>
       </div>
     </aside>
@@ -448,6 +450,97 @@ $('del').onclick = () => { S.fields = S.fields.filter(q => q.id !== S.sel); S.se
 $('dup').onclick = () => { const f = cur(), n = { ...f, id: uid++, y: f.y + f.h + 8, name: uniqueName(f.name.replace(/_\d+$/, '')), opts: [...f.opts] }; S.fields.push(n); select(n.id); };
 document.addEventListener('keydown', e => { if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return; if ((e.key === 'Delete' || e.key === 'Backspace') && S.sel) $('del').click(); });
 
+/* ---------- scripts that live inside the downloaded PDF ----------
+   Shared helpers are repeated in each script on purpose: some PDF apps don't share code between scripts. */
+const MARK = 'gpwr_locked';
+const jsHelpers = (req, dates) => `var GP_REQ = ${JSON.stringify(req)}, GP_DATES = ${JSON.stringify(dates)}, GP_MARK = "${MARK}";
+var gpToday = function () { var d = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; }; return p(d.getMonth() + 1) + "/" + p(d.getDate()) + "/" + d.getFullYear(); };
+var gpFillDates = function (doc, onlyEmpty) { for (var k = 0; k < GP_DATES.length; k++) { var df = doc.getField(GP_DATES[k]); if (df && (!onlyEmpty || gpEmpty(df))) df.value = gpToday(); } };
+var gpTrim = function (x) { return (x === null || x === undefined) ? "" : String(x).replace(/^\\s+|\\s+$/g, ""); };
+var gpLabel = function (f, n) { if (f && f.userName && !/^Type your/.test(f.userName)) return f.userName;
+  var t = String(n).split(".").pop().replace(/\\[\\d+\\]$/, "").replace(/_\\d+$/, "").replace(/_/g, " "); return t.charAt(0).toUpperCase() + t.slice(1); };
+var gpEmpty = function (f) { var t = gpTrim(f.value); return t == "" || t == "Off"; };
+var gpMissing = function (doc, skip) { var out = [], seen = {};
+  for (var r = 0; r < GP_REQ.length; r++) { if (GP_REQ[r] == skip) continue; var q = doc.getField(GP_REQ[r]); if (q && gpEmpty(q)) { out.push(gpLabel(q, GP_REQ[r])); seen[GP_REQ[r]] = 1; } }
+  for (var i = 0; i < doc.numFields; i++) { var n = doc.getNthFieldName(i), f = doc.getField(n);
+    if (!f || seen[n] || n == skip || n == GP_MARK || !f.required || GP_DATES.indexOf(n) >= 0) continue;
+    if ((f.type == "text" || f.type == "combobox") && gpEmpty(f)) out.push(gpLabel(f, n)); }
+  return out; };
+var gpLock = function (doc) { var m = doc.getField(GP_MARK); if (m) m.value = "yes";
+  for (var j = 0; j < doc.numFields; j++) { var g = doc.getField(doc.getNthFieldName(j)); if (g) g.readonly = true; } };
+var gpIsLocked = function (doc) { var m = doc.getField(GP_MARK); return !!(m && gpTrim(m.value) == "yes"); };`;
+
+/** Runs when the PDF opens: re-lock a locked form, otherwise remember the starting values. */
+const openScript = (req, dates) => `${jsHelpers(req, dates)}
+var gpwrStart = {};
+(function (doc) { try {
+  if (gpIsLocked(doc)) { gpLock(doc); return; }
+  for (var i = 0; i < doc.numFields; i++) { var n = doc.getNthFieldName(i), f = doc.getField(n); if (f) gpwrStart[n] = gpTrim(f.value); }
+} catch (e) {} })(this);`;
+
+/** Runs just before the PDF is saved: if anything was filled in (and nothing required is missing), lock it. */
+const saveScript = (req, dates) => `${jsHelpers(req, dates)}
+(function (doc) { try {
+  if (gpIsLocked(doc)) { gpLock(doc); return; }
+  var changed = false, start = (typeof gpwrStart == "object") ? gpwrStart : null;
+  for (var i = 0; i < doc.numFields; i++) { var n = doc.getNthFieldName(i), f = doc.getField(n);
+    if (!f || n == GP_MARK || GP_DATES.indexOf(n) >= 0) continue; var v = gpTrim(f.value);
+    if (start && (n in start) ? start[n] !== v : (v != "" && v != "Off")) { changed = true; break; } }
+  if (!changed) return;
+  var missing = gpMissing(doc, "");
+  if (missing.length) { app.alert("Your answers were saved, but the form isn't locked yet.\\n\\nPlease fill in:\\n" + missing.join("\\n") + "\\n\\nThen save again to finish.", 3); return; }
+  gpFillDates(doc, true);
+  gpLock(doc);
+  app.alert("Thank you. Your answers are saved and the form is now locked.", 3);
+} catch (e) {} })(this);`;
+
+/** Runs when the client types in a signature box. */
+const signScript = (req, dates) => `${jsHelpers(req, dates)}
+var v = gpTrim(event.value);
+if (v !== "") {
+  var missing = gpMissing(this, event.target.name);
+  if (missing.length) { app.alert("Please fill in these fields before signing:\\n\\n" + missing.join("\\n"), 1); event.rc = false; }
+  else { gpFillDates(this, false); gpLock(this); app.alert("Thank you. The form is signed and dated, and it's now locked.\\n\\nPlease save the file and send it back.", 3); }
+}`;
+
+async function setupForm(doc, form, sigFields, reqNames, helv, lock, dateFields) {
+  const dateNames = dateFields.map(t => t.getName());
+  const { PDFName, PDFDict, PDFArray, PDFHexString, StandardFonts } = PDFLib, ctx = doc.context;
+  // Make fonts available to PDF apps so typed text keeps its look (italic for signatures).
+  const italic = sigFields.length ? await doc.embedFont(StandardFonts.TimesRomanItalic) : null;
+  let DR = form.acroForm.dict.lookup(PDFName.of('DR'));
+  if (!(DR instanceof PDFDict)) { DR = ctx.obj({}); form.acroForm.dict.set(PDFName.of('DR'), DR); }
+  let fonts = DR.lookup(PDFName.of('Font'));
+  if (!(fonts instanceof PDFDict)) { fonts = ctx.obj({}); DR.set(PDFName.of('Font'), fonts); }
+  fonts.set(PDFName.of(helv.name), helv.ref);
+  if (italic) fonts.set(PDFName.of(italic.name), italic.ref);
+  for (const t of sigFields) {
+    t.acroField.dict.set(PDFName.of('TU'), PDFHexString.fromText('Type your full name to sign'));
+    t.acroField.setDefaultAppearance(`/${italic.name} 0 Tf 0.08 0.13 0.24 rg`);
+    try { t.defaultUpdateAppearances(italic); } catch (e) {}
+    t.acroField.setDefaultAppearance(`/${italic.name} 0 Tf 0.08 0.13 0.24 rg`);
+    if (lock) t.acroField.dict.set(PDFName.of('AA'), ctx.obj({ V: ctx.obj({ Type: 'Action', S: 'JavaScript', JS: PDFHexString.fromText(signScript(reqNames, dateNames)) }) }));
+  }
+  for (const t of dateFields) t.acroField.dict.set(PDFName.of('TU'), PDFHexString.fromText(sigFields.length ? 'Date (filled in automatically when you sign)' : 'Date (filled in automatically when you save)'));
+  if (!lock) return;
+  // Hidden "locked" marker: a field value survives saving in every PDF app.
+  let mark; try { mark = form.getTextField(MARK); } catch (e) { mark = null; }
+  if (!mark) { mark = form.createTextField(MARK); mark.addToPage(doc.getPage(0), { x: 0, y: 0, width: 1, height: 1, hidden: true, borderWidth: 0, font: helv }); }
+  mark.setText(''); mark.enableReadOnly();
+  // Script that runs when the file opens.
+  const openAct = ctx.register(ctx.obj({ Type: 'Action', S: 'JavaScript', JS: PDFHexString.fromText(openScript(reqNames, dateNames)) }));
+  let names = doc.catalog.lookup(PDFName.of('Names'));
+  if (!(names instanceof PDFDict)) { names = ctx.obj({}); doc.catalog.set(PDFName.of('Names'), names); }
+  let tree = names.lookup(PDFName.of('JavaScript'));
+  if (!(tree instanceof PDFDict)) { tree = ctx.obj({}); names.set(PDFName.of('JavaScript'), tree); }
+  let arr = tree.lookup(PDFName.of('Names'));
+  if (!(arr instanceof PDFArray)) { arr = ctx.obj([]); tree.set(PDFName.of('Names'), arr); }
+  arr.push(PDFHexString.fromText('GoodPWRLock')); arr.push(openAct);
+  // Script that runs just before the file is saved.
+  let aa = doc.catalog.lookup(PDFName.of('AA'));
+  if (!(aa instanceof PDFDict)) { aa = ctx.obj({}); doc.catalog.set(PDFName.of('AA'), aa); }
+  aa.set(PDFName.of('WS'), ctx.obj({ Type: 'Action', S: 'JavaScript', JS: PDFHexString.fromText(saveScript(reqNames, dateNames)) }));
+}
 $('save').onclick = async () => {
   if (!S.fields.length) { Hub.toast('Draw at least one field first.'); return; }
   const bad = S.fields.find(f => f.type === 'drop' && !f.opts.length); if (bad) { select(bad.id); Hub.toast('Give the dropdown at least one option.'); return; }
@@ -458,23 +551,22 @@ $('save').onclick = async () => {
     const doc = await PDFDocument.load(S.bytes, { ignoreEncryption: true }), form = doc.getForm();
     if (!$('keepOld').checked) form.getFields().forEach(f => { try { form.removeField(f); } catch (e) {} });
     const helv = await doc.embedFont(StandardFonts.Helvetica);
-    const existing = new Set(form.getFields().map(f => f.getName()));
+    form.getFields().forEach(f => { try { if (f.getName() === MARK) f.setText(''); else f.disableReadOnly(); } catch (e) {} });
+    const existing = new Set(form.getFields().map(f => f.getName())), sigFields = [], reqNames = [], dateFields = [];
     for (const f of S.fields) {
-      let name = f.name; while (existing.has(name)) name += '_x'; existing.add(name);
+      let name = f.name === MARK ? MARK + '_1' : f.name; while (existing.has(name)) name += '_x'; existing.add(name);
       const p = S.pages[f.page], a = p.v1.convertToPdfPoint(f.x, f.y), b = p.v1.convertToPdfPoint(f.x + f.w, f.y + f.h);
       const box = { x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), width: Math.abs(a[0] - b[0]), height: Math.abs(a[1] - b[1]), font: helv,
         borderColor: undefined, borderWidth: 0, backgroundColor: undefined };
       const page = doc.getPage(f.page);
+      if (f.req && f.type !== 'check' && f.type !== 'date') reqNames.push(name);
       if (f.type === 'sig') {
-        // Real signature spot: a "Sign here" box on the page plus a signature field nobody can type into.
-        page.drawRectangle({ x: box.x, y: box.y, width: box.width, height: box.height, color: rgb(1, .97, .86), borderColor: rgb(.72, .53, .18), borderWidth: .8 });
-        const ls = Math.max(5, Math.min(8, box.height * .28));
-        page.drawText('Sign here', { x: box.x + 3, y: box.y + 3, size: ls, font: helv, color: rgb(.55, .4, .12) });
-        const ctx = doc.context;
-        const w = ctx.obj({ Type: 'Annot', Subtype: 'Widget', FT: 'Sig', T: PDFLib.PDFString.of(name), TU: PDFLib.PDFString.of('Signature'),
-          Rect: [box.x, box.y, box.x + box.width, box.y + box.height], F: 4, P: page.ref });
-        if (f.req) w.set(PDFLib.PDFName.of('Ff'), ctx.obj(2));
-        const ref = ctx.register(w); page.node.addAnnot(ref); form.acroForm.addField(ref);
+        // Typeable signature: the client types their name; it shows in an italic signature style.
+        if (!/^sig/i.test(name)) { name = 'signature_' + name; existing.add(name); }
+        const t = form.createTextField(name);
+        t.addToPage(page, box);
+        if (f.req) t.enableRequired();
+        sigFields.push(t);
         continue;
       }
       if (f.type === 'check') { const c = form.createCheckBox(name); c.addToPage(page, { ...box, borderColor: rgb(.35, .37, .4), borderWidth: 1, backgroundColor: rgb(1, 1, 1) }); if (f.req) c.enableRequired(); }
@@ -482,14 +574,16 @@ $('save').onclick = async () => {
       else {
         const t = form.createTextField(name);
         if (f.type === 'multi') t.enableMultiline();
+        if (f.type === 'date') dateFields.push(t);
         if (f.def) t.setText(Hub.winAnsi(f.def));
         t.addToPage(page, box); if (f.size) t.setFontSize(f.size);
         if (f.req) t.enableRequired();
       }
     }
     form.updateFieldAppearances(helv);
+    await setupForm(doc, form, sigFields, reqNames, helv, $('lockOnSign').checked, dateFields);
     Hub.download(await doc.save(), Hub.baseName(S.name) + '-fillable.pdf', 'application/pdf');
-    Hub.toast(S.fields.some(f => f.type === 'sig') ? 'Fillable PDF downloaded. Have people open it in Fill & Sign to sign and lock it.' : 'Fillable PDF downloaded.', 6000);
+    Hub.toast($('lockOnSign').checked ? 'Fillable PDF downloaded. It locks itself once the client fills it in and saves.' : 'Fillable PDF downloaded.', 6000);
   } catch (e) { console.error(e); Hub.toast('Could not build the form: ' + e.message); }
   $('save').disabled = false; $('save').textContent = 'Download fillable PDF';
 };
