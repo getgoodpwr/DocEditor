@@ -463,7 +463,7 @@ $('save').onclick = async () => {
       let name = f.name; while (existing.has(name)) name += '_x'; existing.add(name);
       const p = S.pages[f.page], a = p.v1.convertToPdfPoint(f.x, f.y), b = p.v1.convertToPdfPoint(f.x + f.w, f.y + f.h);
       const box = { x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), width: Math.abs(a[0] - b[0]), height: Math.abs(a[1] - b[1]), font: helv,
-        borderColor: rgb(.55, .58, .62), borderWidth: 1, backgroundColor: f.type === 'sig' ? rgb(1, .98, .88) : rgb(.94, .96, 1) };
+        borderColor: undefined, borderWidth: 0, backgroundColor: undefined };
       const page = doc.getPage(f.page);
       if (f.type === 'sig') {
         // Real signature spot: a "Sign here" box on the page plus a signature field nobody can type into.
@@ -477,7 +477,7 @@ $('save').onclick = async () => {
         const ref = ctx.register(w); page.node.addAnnot(ref); form.acroForm.addField(ref);
         continue;
       }
-      if (f.type === 'check') { const c = form.createCheckBox(name); c.addToPage(page, { ...box, backgroundColor: rgb(1, 1, 1) }); if (f.req) c.enableRequired(); }
+      if (f.type === 'check') { const c = form.createCheckBox(name); c.addToPage(page, { ...box, borderColor: rgb(.35, .37, .4), borderWidth: 1, backgroundColor: rgb(1, 1, 1) }); if (f.req) c.enableRequired(); }
       else if (f.type === 'drop') { const d = form.createDropdown(name); d.addOptions(f.opts.map(Hub.winAnsi)); if (f.def && f.opts.includes(f.def)) d.select(Hub.winAnsi(f.def)); d.addToPage(page, box); if (f.size) d.setFontSize(f.size); if (f.req) d.enableRequired(); }
       else {
         const t = form.createTextField(name);

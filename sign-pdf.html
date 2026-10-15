@@ -499,7 +499,7 @@ async function readFields() {
       if (!kind || !a.rect) continue;
       const f = { id: 'f' + (n++), page: i - 1, name: a.fieldName, kind, rect: a.rect, required: !!a.required,
         opts: (a.options || []).map(o => ({ v: String(o.exportValue ?? o.displayValue ?? ''), t: String(o.displayValue ?? o.exportValue ?? '') })),
-        on: a.exportValue || a.buttonValue || 'Yes', size: (a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 0, maxLen: a.maxLen || 0 };
+        on: a.exportValue || a.buttonValue || 'Yes', size: (a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 0, maxLen: a.maxLen || 0, comb: !!a.comb, align: a.textAlignment || 0, init: a.fieldValue };
       S.fields.push(f);
       if (!(f.name in S.values)) {
         const v = a.fieldValue;
@@ -508,11 +508,20 @@ async function readFields() {
       if (kind === 'radio' && a.fieldValue && a.fieldValue !== 'Off') S.values[f.name] = a.fieldValue;
     }
   }
+  // Several checkboxes sharing one name but with different "on" values act as "pick one" (e.g. W-9 line 3a).
+  const groups = {};
+  S.fields.filter(f => f.kind === 'check').forEach(f => (groups[f.name] = groups[f.name] || []).push(f));
+  for (const [name, list] of Object.entries(groups)) {
+    if (list.length > 1 && new Set(list.map(f => f.on)).size > 1) {
+      list.forEach(f => { f.kind = 'radio'; f.boxGroup = true; });
+      S.values[name] = (list.find(f => f.init && f.init === f.on) || {}).on || '';
+    }
+  }
   $('formPanel').hidden = !S.fields.length; updateFormInfo();
 }
 const isFilled = f => f.kind === 'check' ? true : f.kind === 'radio' ? !!S.values[f.name] : String(S.values[f.name] ?? '').trim() !== '';
 const signedSpots = () => new Set(S.items.filter(i => i.spot).map(i => i.spot));
-function viewRect(p, rect, vp) { const [x1, y1, x2, y2] = vp.convertToViewportRectangle(rect); return { L: Math.min(x1, x2), T: Math.min(y1, y2), W: Math.abs(x2 - x1), H: Math.abs(y2 - y1) }; }
+function viewRect(p, rect, vp) { const [x1, y1] = vp.convertToViewportPoint(rect[0], rect[1]), [x2, y2] = vp.convertToViewportPoint(rect[2], rect[3]); return { L: Math.min(x1, x2), T: Math.min(y1, y2), W: Math.abs(x2 - x1), H: Math.abs(y2 - y1) }; }
 function drawFields() {
   document.querySelectorAll('.ff,.sigspot').forEach(n => n.remove());
   for (const f of S.fields) {
@@ -530,6 +539,10 @@ function drawFields() {
         inp = document.createElement('input'); inp.type = f.kind === 'check' ? 'checkbox' : 'radio';
         if (f.kind === 'radio') { inp.name = 'r_' + f.name; inp.checked = S.values[f.name] === f.on; } else inp.checked = !!S.values[f.name];
         inp.addEventListener('change', () => { S.values[f.name] = f.kind === 'check' ? inp.checked : f.on; syncSame(f, inp); updateFormInfo(); });
+        if (f.kind === 'radio') {
+          inp.addEventListener('pointerdown', () => { inp.dataset.was = inp.checked ? '1' : ''; });
+          inp.addEventListener('click', () => { if (inp.dataset.was) { inp.checked = false; S.values[f.name] = ''; inp.dataset.was = ''; updateFormInfo(); } });
+        }
       } else if (f.kind === 'choice') {
         inp = document.createElement('select');
         inp.innerHTML = '<option value=""></option>' + f.opts.map(o => `<option value="${Hub.esc(o.v)}">${Hub.esc(o.t)}</option>`).join('');
@@ -586,49 +599,90 @@ function goToField(f) {
 }
 $('nextField').onclick = () => { const f = firstMissing(false); if (!f) Hub.toast('Everything is filled in and signed.'); else goToField(f); };
 
-/** Put the typed answers into the real form fields, then lock (flatten) them if asked. */
+/** Put the typed answers into the form, then (if locking) paint every field onto the page and remove all form boxes. */
 async function fillAndLock(doc, font, sym, lock) {
-  const { PDFTextField, PDFCheckBox, PDFDropdown, PDFOptionList, PDFRadioGroup, PDFSignature, rgb } = PDFLib;
-  let form; try { form = doc.getForm(); } catch (e) { return; }
+  const L = PDFLib;
+  let form; try { form = doc.getForm(); } catch (e) { console.warn('No readable form', e); }
   const sigNames = new Set(S.fields.filter(f => f.kind === 'sig').map(f => f.name));
-  for (const field of form.getFields()) {
-    const name = field.getName();
+  const failed = new Set();
+  let fields = []; try { fields = form ? form.getFields() : []; } catch (e) { console.warn(e); }
+  for (const field of fields) {
+    let name; try { name = field.getName(); } catch (e) { continue; }
+    if (sigNames.has(name) || field instanceof L.PDFSignature || field instanceof L.PDFButton || !(name in S.values)) continue;
+    const v = S.values[name], meta = S.fields.find(f => f.name === name);
     try {
-      if (sigNames.has(name) || field instanceof PDFSignature) {
-        if (lock) form.removeField(field); else if (field instanceof PDFTextField) field.setText('');
+      if (field instanceof L.PDFTextField) { const t = v ? Hub.winAnsi(v) : ''; const max = field.getMaxLength(); field.setText(max ? t.slice(0, max) : t); }
+      else if (field instanceof L.PDFCheckBox && meta && meta.boxGroup) {
+        const target = L.PDFName.of(v || 'Off'); field.acroField.dict.set(L.PDFName.of('V'), target);
+        for (const w of field.acroField.getWidgets()) w.setAppearanceState(w.getOnValue() === target ? target : L.PDFName.of('Off'));
         continue;
       }
-      if (!(name in S.values)) continue;
-      const v = S.values[name], meta = S.fields.find(f => f.name === name);
-      if (field instanceof PDFTextField) field.setText(v ? Hub.winAnsi(v) : '');
-      else if (field instanceof PDFCheckBox) { if (v) field.check(); else field.uncheck(); }
-      else if (field instanceof PDFRadioGroup) { if (v) field.select(v); }
-      else if (field instanceof PDFDropdown || field instanceof PDFOptionList) {
+      else if (field instanceof L.PDFCheckBox) { if (v) field.check(); else field.uncheck(); }
+      else if (field instanceof L.PDFRadioGroup) { if (v) field.select(v); }
+      else if (field instanceof L.PDFDropdown || field instanceof L.PDFOptionList) {
         if (!v) field.clear();
-        else { const disp = (meta && meta.opts.find(o => o.v === v) || {}).t; try { field.select(disp || v); } catch (e) { field.select(v); } }
+        else { const disp = ((meta && meta.opts.find(o => o.v === v)) || {}).t; try { field.select(disp || v); } catch (e) { field.select(v); } }
       }
-    } catch (e) { console.warn('Could not fill', name, e); }
+      if (field.needsAppearancesUpdate()) field.defaultUpdateAppearances(font);
+    } catch (e) { failed.add(name); console.warn('Drawing', name, 'by hand:', e && e.message); }
   }
-  if (!lock) { try { form.updateFieldAppearances(font); } catch (e) {} return; }
-  try { form.flatten(); }
-  catch (e) {
-    console.warn('Flatten failed; drawing answers onto the page instead.', e);
-    const left = new Set(form.getFields().map(x => x.getName()));
-    for (const f of S.fields) {
-      if (f.kind === 'sig' || !left.has(f.name)) continue;
-      const page = doc.getPage(f.page), [x1, y1, x2, y2] = f.rect, W = x2 - x1, H = y2 - y1, v = S.values[f.name], ink = rgb(.07, .07, .07);
-      if (f.kind === 'check' || f.kind === 'radio') {
-        if (f.kind === 'check' ? v : v === f.on) { const s = Math.min(W, H) * .8; page.drawText('4', { x: x1 + (W - s * .78) / 2, y: y1 + (H - s * .7) / 2, size: s, font: sym, color: ink }); }
-        continue;
-      }
-      let txt = f.kind === 'choice' ? ((f.opts.find(o => o.v === v) || {}).t || v || '') : (v || '');
-      txt = Hub.winAnsi(txt); if (!txt) continue;
-      const size = f.size || Math.min(12, H * .62);
-      if (f.kind === 'multi') Hub.wrap(txt, font, size, W - 4).forEach((l, i) => { const y = y2 - 2 - size * (i + 1) * 1.15 + size * .2; if (y > y1 && l) page.drawText(l, { x: x1 + 2, y, size, font, color: ink }); });
-      else page.drawText(txt, { x: x1 + 2, y: y1 + (H - size) / 2 + size * .22, size, font, color: ink, maxWidth: W - 4 });
+  if (!lock) return;
+  drawByHand(doc, font, sym, failed);
+  flattenWidgets(doc, new Set([...sigNames, ...failed]));
+}
+/** Draw answers for fields the form library couldn't handle. */
+function drawByHand(doc, font, sym, names) {
+  const ink = PDFLib.rgb(.07, .07, .07);
+  for (const f of S.fields) {
+    if (f.kind === 'sig' || !names.has(f.name)) continue;
+    const page = doc.getPage(f.page), [x1, y1, x2, y2] = f.rect, W = x2 - x1, H = y2 - y1, v = S.values[f.name];
+    if (f.kind === 'check' || f.kind === 'radio') {
+      if (f.kind === 'check' ? v : v === f.on) { const s = Math.min(W, H) * .8; page.drawText('4', { x: x1 + (W - s * .78) / 2, y: y1 + (H - s * .7) / 2, size: s, font: sym, color: ink }); }
+      continue;
     }
-    for (const fld of form.getFields()) { try { form.removeField(fld); } catch (e2) {} }
+    let txt = f.kind === 'choice' ? (((f.opts.find(o => o.v === v)) || {}).t || v || '') : (v || '');
+    txt = Hub.winAnsi(txt); if (!txt) continue;
+    const size = f.size || (f.kind === 'multi' ? 10 : Math.min(12, H * .62));
+    if (f.kind === 'multi') { Hub.wrap(txt, font, size, W - 4).forEach((l, i) => { const y = y2 - 2 - size * (i + 1) * 1.15 + size * .2; if (y > y1 && l) page.drawText(l, { x: x1 + 2, y, size, font, color: ink }); }); continue; }
+    const y = y1 + (H - size) / 2 + size * .22;
+    if (f.comb && f.maxLen) { const cw = W / f.maxLen; [...txt].slice(0, f.maxLen).forEach((ch, i) => page.drawText(ch, { x: x1 + cw * i + (cw - font.widthOfTextAtSize(ch, size)) / 2, y, size, font, color: ink })); continue; }
+    const tw = font.widthOfTextAtSize(txt, size), x = f.align === 1 ? x1 + (W - tw) / 2 : f.align === 2 ? x2 - 2 - tw : x1 + 2;
+    page.drawText(txt, { x, y, size, font, color: ink });
   }
+}
+/** Paint each form box's current look onto the page, then delete every form box and the form itself. */
+function flattenWidgets(doc, skipNames) {
+  const { PDFName, PDFDict, PDFRef, PDFStream, PDFArray, PDFNumber, pushGraphicsState, popGraphicsState, concatTransformationMatrix, drawObject } = PDFLib;
+  const ctx = doc.context, N = n => PDFName.of(n), num = o => (o instanceof PDFNumber ? o.asNumber() : 0);
+  const fullName = d => { const parts = []; let cur = d, g = 0; while (cur instanceof PDFDict && g++ < 25) { const t = cur.lookup(N('T')); if (t && t.decodeText) parts.unshift(t.decodeText()); cur = cur.lookup(N('Parent')); } return parts.join('.'); };
+  for (const page of doc.getPages()) {
+    let annots; try { annots = page.node.Annots(); } catch (e) { annots = null; }
+    if (!annots) continue;
+    const keep = [];
+    for (let i = 0; i < annots.size(); i++) {
+      const raw = annots.get(i); let w; try { w = ctx.lookup(raw); } catch (e) { continue; }
+      if (!(w instanceof PDFDict) || w.get(N('Subtype')) !== N('Widget')) { keep.push(raw); continue; }
+      try {
+        const flags = num(w.lookup(N('F'))); if ((flags & 2) || (flags & 32)) continue;
+        if (skipNames.has(fullName(w))) continue;
+        const ap = w.lookup(N('AP')); if (!(ap instanceof PDFDict)) continue;
+        let nRaw = ap.get(N('N')), nObj = ctx.lookup(nRaw);
+        if (nObj instanceof PDFDict) { const as = w.get(N('AS')); if (!as) continue; nRaw = nObj.get(as); nObj = ctx.lookup(nRaw); }
+        if (!(nObj instanceof PDFStream) || !(nRaw instanceof PDFRef)) continue;
+        const r = w.lookup(N('Rect'), PDFArray).asArray().map(num);
+        const rx = Math.min(r[0], r[2]), ry = Math.min(r[1], r[3]), rw = Math.abs(r[2] - r[0]), rh = Math.abs(r[3] - r[1]);
+        const bbA = nObj.dict.lookup(N('BBox')), bb = bbA instanceof PDFArray ? bbA.asArray().map(num) : [0, 0, rw, rh];
+        const mA = nObj.dict.lookup(N('Matrix')), m = mA instanceof PDFArray ? mA.asArray().map(num) : [1, 0, 0, 1, 0, 0];
+        const pts = [[bb[0], bb[1]], [bb[2], bb[1]], [bb[0], bb[3]], [bb[2], bb[3]]].map(([x, y]) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]]);
+        const tx1 = Math.min(...pts.map(q => q[0])), tx2 = Math.max(...pts.map(q => q[0])), ty1 = Math.min(...pts.map(q => q[1])), ty2 = Math.max(...pts.map(q => q[1]));
+        if (tx2 - tx1 < 1e-6 || ty2 - ty1 < 1e-6 || rw < 1e-6 || rh < 1e-6) continue;
+        const sx = rw / (tx2 - tx1), sy = rh / (ty2 - ty1), key = page.node.newXObject('FlatWidget', nRaw);
+        page.pushOperators(pushGraphicsState(), concatTransformationMatrix(sx, 0, 0, sy, rx - sx * tx1, ry - sy * ty1), drawObject(key), popGraphicsState());
+      } catch (e) { console.warn('Could not paint a form box', e && e.message); }
+    }
+    page.node.set(N('Annots'), ctx.obj(keep));
+  }
+  doc.catalog.delete(N('AcroForm'));
 }
 const drop = Hub.dropzone($('drop'), { accept: 'application/pdf,.pdf', onFiles: async ([f]) => openDoc(await Hub.bytes(f), f.name) });
 $('swap').onclick = () => drop.click();
@@ -726,8 +780,8 @@ $('save').onclick = async () => {
       const p = S.pages[it.page], page = doc.getPage(it.page), R = (p.v1.rotation || 0);
       const toPdf = (x, y) => p.v1.convertToPdfPoint(x, y);
       if (it.cover) {
-        const [cx, cy] = toPdf(it.cover[0], it.cover[1] + it.cover[3]);
-        page.drawRectangle({ x: cx, y: cy, width: it.cover[2], height: it.cover[3], color: rgb(1, 1, 1), rotate: degrees(R) });
+        const [cx, cy] = toPdf(it.cover[0] - 1.5, it.cover[1] + it.cover[3] + 1.5);
+        page.drawRectangle({ x: cx, y: cy, width: it.cover[2] + 3, height: it.cover[3] + 3, color: rgb(1, 1, 1), rotate: degrees(R) });
       }
       if (it.type === 'img') {
         imgs[it.url] = imgs[it.url] || await doc.embedPng(it.url);
