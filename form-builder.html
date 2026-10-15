@@ -138,7 +138,7 @@ table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;col
 <body>
 <main class="wrap">
   <div class="page-head"><h1>Fillable Form Builder</h1><span class="replaces">Instead of Acrobat Pro or Jotform PDF Editor</span>
-    <p>Turn any PDF into a form people can fill in on their computer or phone. Draw the fields where they belong, name them, and download the fillable PDF.</p></div>
+    <p>Turn any PDF into a form people can fill in. Draw the fields where they belong and download the fillable PDF. People then open it in <a href="sign-pdf.html">Fill &amp; Sign</a> to fill it in, sign the signature boxes, and download a locked copy.</p></div>
   <div class="cols">
     <aside>
       <div class="panel stack">
@@ -465,6 +465,18 @@ $('save').onclick = async () => {
       const box = { x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), width: Math.abs(a[0] - b[0]), height: Math.abs(a[1] - b[1]), font: helv,
         borderColor: rgb(.55, .58, .62), borderWidth: 1, backgroundColor: f.type === 'sig' ? rgb(1, .98, .88) : rgb(.94, .96, 1) };
       const page = doc.getPage(f.page);
+      if (f.type === 'sig') {
+        // Real signature spot: a "Sign here" box on the page plus a signature field nobody can type into.
+        page.drawRectangle({ x: box.x, y: box.y, width: box.width, height: box.height, color: rgb(1, .97, .86), borderColor: rgb(.72, .53, .18), borderWidth: .8 });
+        const ls = Math.max(5, Math.min(8, box.height * .28));
+        page.drawText('Sign here', { x: box.x + 3, y: box.y + 3, size: ls, font: helv, color: rgb(.55, .4, .12) });
+        const ctx = doc.context;
+        const w = ctx.obj({ Type: 'Annot', Subtype: 'Widget', FT: 'Sig', T: PDFLib.PDFString.of(name), TU: PDFLib.PDFString.of('Signature'),
+          Rect: [box.x, box.y, box.x + box.width, box.y + box.height], F: 4, P: page.ref });
+        if (f.req) w.set(PDFLib.PDFName.of('Ff'), ctx.obj(2));
+        const ref = ctx.register(w); page.node.addAnnot(ref); form.acroForm.addField(ref);
+        continue;
+      }
       if (f.type === 'check') { const c = form.createCheckBox(name); c.addToPage(page, { ...box, backgroundColor: rgb(1, 1, 1) }); if (f.req) c.enableRequired(); }
       else if (f.type === 'drop') { const d = form.createDropdown(name); d.addOptions(f.opts.map(Hub.winAnsi)); if (f.def && f.opts.includes(f.def)) d.select(Hub.winAnsi(f.def)); d.addToPage(page, box); if (f.size) d.setFontSize(f.size); if (f.req) d.enableRequired(); }
       else {
@@ -476,7 +488,8 @@ $('save').onclick = async () => {
       }
     }
     form.updateFieldAppearances(helv);
-    Hub.download(await doc.save(), Hub.baseName(S.name) + '-fillable.pdf', 'application/pdf'); Hub.toast('Fillable PDF downloaded.');
+    Hub.download(await doc.save(), Hub.baseName(S.name) + '-fillable.pdf', 'application/pdf');
+    Hub.toast(S.fields.some(f => f.type === 'sig') ? 'Fillable PDF downloaded. Have people open it in Fill & Sign to sign and lock it.' : 'Fillable PDF downloaded.', 6000);
   } catch (e) { console.error(e); Hub.toast('Could not build the form: ' + e.message); }
   $('save').disabled = false; $('save').textContent = 'Download fillable PDF';
 };

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Sign a PDF · GoodPWR HR Hub</title>
+<title>Fill &amp; Sign · GoodPWR HR Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,700&family=Jost:wght@400;500;600&family=IBM+Plex+Mono:wght@400&family=Great+Vibes&family=Dancing+Script:wght@600&family=Allura&family=Homemade+Apple&display=swap">
 <style>
@@ -131,13 +131,24 @@ table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;col
 .item .x{position:absolute;right:-10px;top:-10px;width:20px;height:20px;border-radius:50%;border:0;background:var(--ink);color:#fff;font-size:12px;line-height:20px;padding:0;display:none}
 .item.sel .h,.item.sel .x{display:block}
 .sheet.placing{cursor:copy}
+.item{z-index:3}
+.ff{position:absolute;z-index:2}
+.ff input[type=text],.ff textarea,.ff select{display:block;width:100%;height:100%;border:1px solid rgba(201,145,62,.95);background:rgba(255,246,222,.92);color:#111;font-family:Helvetica,Arial,sans-serif;padding:0 3px;border-radius:2px;margin:0;resize:none;outline:none;min-height:0}
+.ff textarea{padding:2px 3px;line-height:1.2}
+.ff input:focus,.ff textarea:focus,.ff select:focus{background:#fff;box-shadow:0 0 0 2px rgba(217,162,78,.55)}
+.ff input[type=checkbox],.ff input[type=radio]{display:block;width:100%;height:100%;margin:0;accent-color:#111;cursor:pointer}
+.ff.missing input,.ff.missing textarea,.ff.missing select{border-color:#e5484d;box-shadow:0 0 0 2px rgba(229,72,77,.45)}
+.sigspot{position:absolute;z-index:2;border:2px dashed #D9A24E;background:rgba(217,162,78,.16);color:#6b4a10;display:flex;align-items:center;justify-content:center;font:600 12px Jost,sans-serif;cursor:pointer;border-radius:3px;padding:0}
+.sigspot:hover{background:rgba(217,162,78,.32)}
+.sigspot.missing{border-color:#e5484d}
+.sigspot.done{display:none}
 .pg-label{font-size:12px;color:var(--muted);font-family:var(--f-mono);margin-bottom:-12px}
 </style>
 </head>
 <body>
 <main class="wrap">
-  <div class="page-head"><h1>Sign a PDF</h1><span class="replaces">Instead of DocuSign or Adobe Sign for self-signing</span>
-    <p>Create your signature once, place it anywhere on the document, add initials and dates, then download the signed copy.</p></div>
+  <div class="page-head"><h1>Fill &amp; Sign</h1><span class="replaces">Instead of DocuSign or Adobe Sign for self-signing</span>
+    <p>Fill in a form, sign it, and download a locked copy that can't be changed. Works with any PDF: click "Click to sign" boxes, or place your signature anywhere.</p></div>
   <div class="cols">
     <aside>
       <div class="panel stack">
@@ -166,6 +177,13 @@ table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;col
           <div><div class="lbl" style="margin-bottom:4px">Signature</div><div class="preview-sig" id="pvSig"><span class="small muted">None yet</span></div></div>
           <div><div class="lbl" style="margin-bottom:4px">Initials</div><div class="preview-sig" id="pvIni"><span class="small muted">None yet</span></div></div>
         </div>
+      </div>
+      <div class="panel stack" id="formPanel" hidden>
+        <h2>Form fields</h2>
+        <p class="small" id="formInfo" style="margin:0"></p>
+        <button class="btn sm" id="nextField">Go to the next empty field</button>
+        <label class="check"><input type="checkbox" id="lockForm" checked> Lock the form when downloading</label>
+        <p class="small muted" style="margin:0">Locked forms keep the answers but can't be filled in or changed anymore.</p>
       </div>
       <div class="panel stack">
         <h2>3 · Place on the page</h2>
@@ -366,7 +384,7 @@ table.data th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;col
 
 </script>
 <script>
-Hub.mount('Sign a PDF');
+Hub.mount('Fill & Sign');
 const $ = id => document.getElementById(id);
 const FONTS = ['Great Vibes', 'Dancing Script', 'Allura', 'Homemade Apple'];
 const S = { bytes: null, name: '', pdf: null, pages: [], items: [], sel: null, kind: 'sig', mode: 'type', font: FONTS[0], sig: null, ini: null, placing: null };
@@ -442,7 +460,8 @@ $('inkColor').onchange = () => { renderTypedOpts(); if (S.mode === 'type') makeT
 /* ---------- document ---------- */
 async function openDoc(bytes, name) {
   try {
-    S.pdf = await Hub.openPdf(bytes); S.bytes = bytes; S.name = name; S.items = []; S.sel = null;
+    S.pdf = await Hub.openPdf(bytes); S.bytes = bytes; S.name = name; S.items = []; S.sel = null; S.confirmUnsigned = false;
+    await readFields();
     $('drop').hidden = true; $('docInfo').hidden = false; $('docName').textContent = `${name} · ${S.pdf.numPages} page${S.pdf.numPages > 1 ? 's' : ''}`;
     $('save').disabled = false; await renderPages();
   } catch (e) { Hub.toast(e.message); }
@@ -459,7 +478,157 @@ async function renderPages() {
     S.pages.push({ el: sh, vp: viewport, v1, scale });
     sh.addEventListener('pointerdown', e => onSheetDown(e, i - 1));
   }
-  drawItems();
+  drawFields(); drawItems();
+}
+
+/* ---------- form fields ---------- */
+const SIG_NAME = /^(sig|signature)([\s_\-.]|\d|$)/i;
+async function readFields() {
+  S.fields = []; S.values = {}; let n = 0;
+  for (let i = 1; i <= S.pdf.numPages; i++) {
+    let anns = [];
+    try { anns = await (await S.pdf.getPage(i)).getAnnotations(); } catch (e) {}
+    for (const a of anns) {
+      if (a.subtype !== 'Widget' || !a.fieldName || a.readOnly || a.hidden) continue;
+      let kind = null;
+      if (a.fieldType === 'Sig') kind = 'sig';
+      else if (a.fieldType === 'Tx') kind = (SIG_NAME.test(a.fieldName) || /^signature$/i.test(a.alternativeText || '')) ? 'sig' : a.multiLine ? 'multi' : 'text';
+      else if (a.fieldType === 'Btn' && a.checkBox) kind = 'check';
+      else if (a.fieldType === 'Btn' && a.radioButton) kind = 'radio';
+      else if (a.fieldType === 'Ch') kind = 'choice';
+      if (!kind || !a.rect) continue;
+      const f = { id: 'f' + (n++), page: i - 1, name: a.fieldName, kind, rect: a.rect, required: !!a.required,
+        opts: (a.options || []).map(o => ({ v: String(o.exportValue ?? o.displayValue ?? ''), t: String(o.displayValue ?? o.exportValue ?? '') })),
+        on: a.exportValue || a.buttonValue || 'Yes', size: (a.defaultAppearanceData && a.defaultAppearanceData.fontSize) || 0, maxLen: a.maxLen || 0 };
+      S.fields.push(f);
+      if (!(f.name in S.values)) {
+        const v = a.fieldValue;
+        S.values[f.name] = kind === 'check' ? (!!v && v !== 'Off') : kind === 'radio' ? '' : kind === 'sig' ? '' : Array.isArray(v) ? String(v[0] ?? '') : String(v ?? '');
+      }
+      if (kind === 'radio' && a.fieldValue && a.fieldValue !== 'Off') S.values[f.name] = a.fieldValue;
+    }
+  }
+  $('formPanel').hidden = !S.fields.length; updateFormInfo();
+}
+const isFilled = f => f.kind === 'check' ? true : f.kind === 'radio' ? !!S.values[f.name] : String(S.values[f.name] ?? '').trim() !== '';
+const signedSpots = () => new Set(S.items.filter(i => i.spot).map(i => i.spot));
+function viewRect(p, rect, vp) { const [x1, y1, x2, y2] = vp.convertToViewportRectangle(rect); return { L: Math.min(x1, x2), T: Math.min(y1, y2), W: Math.abs(x2 - x1), H: Math.abs(y2 - y1) }; }
+function drawFields() {
+  document.querySelectorAll('.ff,.sigspot').forEach(n => n.remove());
+  for (const f of S.fields) {
+    const p = S.pages[f.page]; if (!p) continue;
+    const { L, T, W, H } = viewRect(p, f.rect, p.vp);
+    let el;
+    if (f.kind === 'sig') {
+      el = document.createElement('button'); el.type = 'button'; el.className = 'sigspot'; el.textContent = H > 18 ? 'Click to sign' : 'Sign';
+      el.addEventListener('pointerdown', e => e.stopPropagation());
+      el.addEventListener('click', e => { e.stopPropagation(); signSpot(f); });
+    } else {
+      el = document.createElement('div'); el.className = 'ff';
+      let inp;
+      if (f.kind === 'check' || f.kind === 'radio') {
+        inp = document.createElement('input'); inp.type = f.kind === 'check' ? 'checkbox' : 'radio';
+        if (f.kind === 'radio') { inp.name = 'r_' + f.name; inp.checked = S.values[f.name] === f.on; } else inp.checked = !!S.values[f.name];
+        inp.addEventListener('change', () => { S.values[f.name] = f.kind === 'check' ? inp.checked : f.on; syncSame(f, inp); updateFormInfo(); });
+      } else if (f.kind === 'choice') {
+        inp = document.createElement('select');
+        inp.innerHTML = '<option value=""></option>' + f.opts.map(o => `<option value="${Hub.esc(o.v)}">${Hub.esc(o.t)}</option>`).join('');
+        inp.value = S.values[f.name] || '';
+        inp.addEventListener('change', () => { S.values[f.name] = inp.value; syncSame(f, inp); updateFormInfo(); });
+      } else {
+        inp = document.createElement(f.kind === 'multi' ? 'textarea' : 'input'); if (f.kind !== 'multi') inp.type = 'text';
+        inp.value = S.values[f.name] || ''; if (f.maxLen) inp.maxLength = f.maxLen;
+        const pts = f.size || Math.min(12, (H / p.scale) * 0.62); inp.style.fontSize = Math.max(7, pts * p.scale) + 'px';
+        inp.addEventListener('input', () => { S.values[f.name] = inp.value; syncSame(f, inp); updateFormInfo(); el.classList.remove('missing'); });
+      }
+      if (f.kind === 'choice' || f.kind === 'text' || f.kind === 'multi') inp.style.fontSize = inp.style.fontSize || Math.max(8, Math.min(12, (H / p.scale) * .62) * p.scale) + 'px';
+      inp.dataset.fid = f.id; inp.setAttribute('aria-label', f.name + (f.required ? ' (required)' : ''));
+      if (f.required) inp.required = true;
+      el.appendChild(inp);
+      el.addEventListener('pointerdown', e => e.stopPropagation());
+    }
+    Object.assign(el.style, { left: L + 'px', top: T + 'px', width: W + 'px', height: H + 'px' });
+    el.dataset.fid = f.id; p.el.appendChild(el);
+  }
+}
+function syncSame(f, src) {
+  document.querySelectorAll('input[data-fid],textarea[data-fid],select[data-fid]').forEach(n => {
+    if (n === src) return; const g = S.fields.find(q => q.id === n.dataset.fid);
+    if (!g || g.name !== f.name || g.kind === 'radio') return;
+    if (g.kind === 'check') n.checked = !!S.values[f.name]; else n.value = S.values[f.name] ?? '';
+  });
+}
+function signSpot(f) {
+  if (!S.sig) { Hub.toast('Create your signature first (step 2), then click the box again.', 4000); $('pvSig').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  const p = S.pages[f.page], { L, T, W, H } = viewRect(p, f.rect, p.v1), m = S.sig;
+  let w = W * .94, h = w / m.ratio; if (h > H * .92) { h = H * .92; w = h * m.ratio; }
+  S.items = S.items.filter(i => i.spot !== f.id);
+  S.items.push({ id: uid++, type: 'img', url: m.url, w, h, page: f.page, x: L + (W - w) / 2, y: T + (H - h) / 2, spot: f.id, cover: [L, T, W, H] });
+  S.confirmUnsigned = false; drawItems(); updateFormInfo();
+}
+function updateFormInfo() {
+  if (!S.fields || !S.fields.length) return;
+  const uniq = [...new Map(S.fields.filter(f => f.kind !== 'sig' && f.kind !== 'check').map(f => [f.name, f])).values()];
+  const sigs = S.fields.filter(f => f.kind === 'sig'), sp = signedSpots();
+  const parts = [];
+  if (uniq.length) parts.push(`${uniq.filter(isFilled).length} of ${uniq.length} fields filled`);
+  if (sigs.length) parts.push(`${sigs.filter(f => sp.has(f.id)).length} of ${sigs.length} signed`);
+  $('formInfo').textContent = parts.join(' · ') || `${S.fields.length} checkbox${S.fields.length > 1 ? 'es' : ''}`;
+}
+function firstMissing(requiredOnly) {
+  const sp = signedSpots();
+  return S.fields.find(f => f.kind === 'sig' ? !sp.has(f.id) && !requiredOnly : f.kind !== 'check' && (!requiredOnly || f.required) && !isFilled(f));
+}
+function goToField(f) {
+  const el = document.querySelector(`.ff[data-fid="${f.id}"], .sigspot[data-fid="${f.id}"]`); if (!el) return;
+  el.classList.add('missing'); el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  setTimeout(() => { const t = el.querySelector('input,textarea,select') || el; t.focus({ preventScroll: true }); }, 400);
+}
+$('nextField').onclick = () => { const f = firstMissing(false); if (!f) Hub.toast('Everything is filled in and signed.'); else goToField(f); };
+
+/** Put the typed answers into the real form fields, then lock (flatten) them if asked. */
+async function fillAndLock(doc, font, sym, lock) {
+  const { PDFTextField, PDFCheckBox, PDFDropdown, PDFOptionList, PDFRadioGroup, PDFSignature, rgb } = PDFLib;
+  let form; try { form = doc.getForm(); } catch (e) { return; }
+  const sigNames = new Set(S.fields.filter(f => f.kind === 'sig').map(f => f.name));
+  for (const field of form.getFields()) {
+    const name = field.getName();
+    try {
+      if (sigNames.has(name) || field instanceof PDFSignature) {
+        if (lock) form.removeField(field); else if (field instanceof PDFTextField) field.setText('');
+        continue;
+      }
+      if (!(name in S.values)) continue;
+      const v = S.values[name], meta = S.fields.find(f => f.name === name);
+      if (field instanceof PDFTextField) field.setText(v ? Hub.winAnsi(v) : '');
+      else if (field instanceof PDFCheckBox) { if (v) field.check(); else field.uncheck(); }
+      else if (field instanceof PDFRadioGroup) { if (v) field.select(v); }
+      else if (field instanceof PDFDropdown || field instanceof PDFOptionList) {
+        if (!v) field.clear();
+        else { const disp = (meta && meta.opts.find(o => o.v === v) || {}).t; try { field.select(disp || v); } catch (e) { field.select(v); } }
+      }
+    } catch (e) { console.warn('Could not fill', name, e); }
+  }
+  if (!lock) { try { form.updateFieldAppearances(font); } catch (e) {} return; }
+  try { form.flatten(); }
+  catch (e) {
+    console.warn('Flatten failed; drawing answers onto the page instead.', e);
+    const left = new Set(form.getFields().map(x => x.getName()));
+    for (const f of S.fields) {
+      if (f.kind === 'sig' || !left.has(f.name)) continue;
+      const page = doc.getPage(f.page), [x1, y1, x2, y2] = f.rect, W = x2 - x1, H = y2 - y1, v = S.values[f.name], ink = rgb(.07, .07, .07);
+      if (f.kind === 'check' || f.kind === 'radio') {
+        if (f.kind === 'check' ? v : v === f.on) { const s = Math.min(W, H) * .8; page.drawText('4', { x: x1 + (W - s * .78) / 2, y: y1 + (H - s * .7) / 2, size: s, font: sym, color: ink }); }
+        continue;
+      }
+      let txt = f.kind === 'choice' ? ((f.opts.find(o => o.v === v) || {}).t || v || '') : (v || '');
+      txt = Hub.winAnsi(txt); if (!txt) continue;
+      const size = f.size || Math.min(12, H * .62);
+      if (f.kind === 'multi') Hub.wrap(txt, font, size, W - 4).forEach((l, i) => { const y = y2 - 2 - size * (i + 1) * 1.15 + size * .2; if (y > y1 && l) page.drawText(l, { x: x1 + 2, y, size, font, color: ink }); });
+      else page.drawText(txt, { x: x1 + 2, y: y1 + (H - size) / 2 + size * .22, size, font, color: ink, maxWidth: W - 4 });
+    }
+    for (const fld of form.getFields()) { try { form.removeField(fld); } catch (e2) {} }
+  }
 }
 const drop = Hub.dropzone($('drop'), { accept: 'application/pdf,.pdf', onFiles: async ([f]) => openDoc(await Hub.bytes(f), f.name) });
 $('swap').onclick = () => drop.click();
@@ -504,6 +673,9 @@ function drawItems() {
     d.addEventListener('pointerdown', e => startDrag(e, it, d));
     p.el.appendChild(d);
   }
+  const sp = signedSpots();
+  document.querySelectorAll('.sigspot').forEach(b => { b.classList.toggle('done', sp.has(b.dataset.fid)); if (sp.has(b.dataset.fid)) b.classList.remove('missing'); });
+  updateFormInfo();
 }
 function focusText(id) {
   const d = document.querySelector(`.item[data-id="${id}"] .txt`), it = S.items.find(q => q.id === id); if (!d) return;
@@ -533,17 +705,30 @@ document.addEventListener('keydown', e => {
 
 /* ---------- export ---------- */
 $('save').onclick = async () => {
-  if (!S.items.length) { Hub.toast('Place your signature on the page first.'); return; }
+  if (!S.items.length && !S.fields.length) { Hub.toast('Place your signature on the page first.'); return; }
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  const reqMissing = firstMissing(true);
+  if (reqMissing) { Hub.toast('Fill in the required fields first. The missing one is outlined in red.', 4500); goToField(reqMissing); return; }
+  const unsigned = S.fields.filter(f => f.kind === 'sig' && !signedSpots().has(f.id));
+  if (unsigned.length && !S.confirmUnsigned) {
+    S.confirmUnsigned = true; goToField(unsigned[0]);
+    Hub.toast(`${unsigned.length} signature box${unsigned.length > 1 ? 'es are' : ' is'} not signed yet. Click Download again to save anyway.`, 5000); return;
+  }
   $('save').disabled = true; $('save').textContent = 'Building…';
   try {
     await Hub.load('pdflib');
     const { PDFDocument, StandardFonts, degrees, rgb } = PDFLib;
     const doc = await PDFDocument.load(S.bytes, { ignoreEncryption: true });
-    try { doc.getForm().flatten(); } catch (e) {}
     const font = await doc.embedFont(StandardFonts.Helvetica), sym = await doc.embedFont(StandardFonts.ZapfDingbats), imgs = {};
+    const lock = S.fields.length ? $('lockForm').checked : true;
+    await fillAndLock(doc, font, sym, lock);
     for (const it of S.items) {
       const p = S.pages[it.page], page = doc.getPage(it.page), R = (p.v1.rotation || 0);
       const toPdf = (x, y) => p.v1.convertToPdfPoint(x, y);
+      if (it.cover) {
+        const [cx, cy] = toPdf(it.cover[0], it.cover[1] + it.cover[3]);
+        page.drawRectangle({ x: cx, y: cy, width: it.cover[2], height: it.cover[3], color: rgb(1, 1, 1), rotate: degrees(R) });
+      }
       if (it.type === 'img') {
         imgs[it.url] = imgs[it.url] || await doc.embedPng(it.url);
         const [bx, by] = toPdf(it.x, it.y + it.h);
@@ -557,7 +742,10 @@ $('save').onclick = async () => {
         });
       }
     }
-    Hub.download(await doc.save(), Hub.baseName(S.name) + '-signed.pdf', 'application/pdf'); Hub.toast('Signed PDF downloaded.');
+    const locked = S.fields.length && lock;
+    Hub.download(await doc.save(), Hub.baseName(S.name) + (locked ? '-signed-locked.pdf' : '-signed.pdf'), 'application/pdf');
+    Hub.toast(locked ? 'Downloaded. The form is locked, so answers can\'t be changed.' : 'Signed PDF downloaded.', 4000);
+    S.confirmUnsigned = false;
   } catch (e) { console.error(e); Hub.toast('Could not build the PDF: ' + e.message); }
   $('save').disabled = false; $('save').textContent = 'Download signed PDF';
 };
